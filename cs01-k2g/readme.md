@@ -24,7 +24,15 @@ uv run python ./configure_grafana_datasource.py
 ```
 then open grafana at :3000, with admin/admin, and go to dashboards
 
+# Performance notes
+The `perf_bench` script is able to benchmark all modes, with the following definition:
+- postgres: fetch all messages in a given time window, then sleep(x), then fetch all messages from the same time window. Extra messages represent `lag`.
+- kafka: note last offset at the start, then seek to beginning of given time window, then fetch all messages (windowStart, lastAtStart), then keep fetching (lastAtStart, windowEnd). The second set of messages represents `lag`.
+
+Only at message rates 60k/s we started observing any lag -- 1s of messages in postgres case, 0 in kafka case.
+
+This does not take into account the fetch speed itself -- kafka is ~100x slower at higher message volumes.
+
 # Next steps
 1. Investigate options for proto-kafka reading from grafana
 2. Install timescale, define the table as a hypertable, add some aggregations
-3. Measure delay added by the postgres roundtrip
