@@ -6,7 +6,8 @@ Demonstrates how to visualize kafka data in grafana, possibly going through a po
 network=devel-network
 docker network create $network
 docker run --rm  --name kafka --network $network -e KAFKA_LISTENERS='PLAINTEXT://kafka:9092,CONTROLLER://kafka:9093' -e KAFKA_CONTROLLER_QUORUM_VOTERS=1@kafka:9093 -e KAFKA_CONTROLLER_LISTENER_NAMES=CONTROLLER -e KAFKA_PROCESS_ROLES=broker,controller -e KAFKA_NODE_ID=1 -e KAFKA_ADVERTISED_LISTENER=PLAINTEXT://kafka:9092 -e KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR=1 apache/kafka:4.1.0
-# TODO create the kafka topics t1, t1-json
+docker exec kafka /opt/kafka/bin/kafka-topics.sh --create --topic t1 --partitions 1 --bootstrap-server kafka:9092
+docker exec kafka /opt/kafka/bin/kafka-topics.sh --create --topic t1-json --partitions 1 --bootstrap-server kafka:9092
 docker run --rm --name postgres --network $network -e POSTGRES_PASSWORD=pgt postgres
 docker run --rm --name grafana --network $network -p 3000:3000 -e GF_PLUGINS_PREINSTALL=hamedkarbasi93-kafka-datasource grafana/grafana-enterprise
 ```

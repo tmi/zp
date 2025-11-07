@@ -12,3 +12,9 @@ dependencies = [
     "protobuf>=6.33.0",
     "psycopg2-binary>=2.9.11",
 ]
+
+[dependency-groups]
+dev = [
+  "ty>=0.0.1a23",
+]
+

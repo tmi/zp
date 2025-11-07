@@ -1,13 +1,13 @@
 import fire
 import sys
 from confluent_kafka import Consumer, KafkaException
-from message_pb2 import Message
+from message_pb2 import Message # ty: ignore[unresolved-import]
 
 class ConsumerCLI:
     def __init__(self):
         pass
 
-    def consume(self, kafka_brokers: str, topic: str, end_after: int = None):
+    def consume(self, kafka_brokers: str, topic: str, end_after: int | None = None):
         """
         Consumes messages from a Kafka topic and prints them to stdout.
 

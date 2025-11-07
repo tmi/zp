@@ -2,13 +2,13 @@ import fire
 import orjson
 import sys
 from confluent_kafka import Consumer, Producer, KafkaException
-from message_pb2 import Message
+from message_pb2 import Message # ty: ignore[unresolved-import]
 
-class TransformerCLI:
+class TransformerJsonCLI:
     def __init__(self):
         pass
 
-    def transform(self, kafka_brokers: str, input_topic: str, output_topic: str, end_after: int = None):
+    def transform(self, kafka_brokers: str, input_topic: str, output_topic: str, end_after: int | None = None):
         """
         Reads proto messages from an input topic, transforms them to JSON, and writes to an output topic.
 
@@ -84,4 +84,4 @@ class TransformerCLI:
                 producer.flush()
 
 if __name__ == '__main__':
-    fire.Fire(TransformerCLI)
+    fire.Fire(TransformerJsonCLI)

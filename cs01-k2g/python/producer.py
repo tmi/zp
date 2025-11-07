@@ -2,7 +2,7 @@ import fire
 import time
 import random
 from confluent_kafka import Producer
-from message_pb2 import Message
+from message_pb2 import Message # ty: ignore[unresolved-import]
 
 class ProducerCLI:
     def __init__(self):

@@ -2,9 +2,9 @@ import fire
 import psycopg2
 import sys
 from confluent_kafka import Consumer, KafkaException
-from message_pb2 import Message
+from message_pb2 import Message # ty: ignore[unresolved-import]
 
-class ProducerPostgresCLI:
+class TransformerPostgresCLI:
     def __init__(self):
         pass
 
@@ -34,7 +34,7 @@ class ProducerPostgresCLI:
             if conn:
                 conn.close()
 
-    def run(self, kafka_brokers: str, topic: str, db_conn_string: str, end_after: int = None):
+    def run(self, kafka_brokers: str, topic: str, db_conn_string: str, end_after: int | None = None):
         """
         Consumes messages from Kafka and inserts them into a PostgreSQL table.
 
@@ -52,7 +52,7 @@ class ProducerPostgresCLI:
 
             conf = {
                 'bootstrap.servers': kafka_brokers,
-                'group.id': 'postgres_producer_group',
+                'group.id': 'postgres_transformer_group',
                 'auto.offset.reset': 'earliest'
             }
             consumer = Consumer(conf)
@@ -96,4 +96,4 @@ class ProducerPostgresCLI:
                 conn.close()
 
 if __name__ == '__main__':
-    fire.Fire(ProducerPostgresCLI)
+    fire.Fire(TransformerPostgresCLI)
