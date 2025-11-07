@@ -1,14 +1,18 @@
+import logging
 import fire
 import orjson
 import sys
 from confluent_kafka import Consumer, Producer, KafkaException
 from message_pb2 import Message # ty: ignore[unresolved-import]
 
+logging.basicConfig(level=logging.WARNING)
+logger = logging.getLogger(__name__)
+
 class TransformerJsonCLI:
     def __init__(self):
         pass
 
-    def transform(self, kafka_brokers: str, input_topic: str, output_topic: str, end_after: int | None = None):
+    def transform(self, kafka_brokers: str = "kafka:9092", input_topic: str = "t1", output_topic: str = "t1-json", end_after: int | None = None):
         """
         Reads proto messages from an input topic, transforms them to JSON, and writes to an output topic.
 
@@ -33,9 +37,7 @@ class TransformerJsonCLI:
 
         def delivery_report(err, msg):
             if err is not None:
-                print(f"Message delivery failed: {err}")
-            else:
-                print(f"Message delivered to {msg.topic()} [{msg.partition()}] @ offset {msg.offset()}")
+                sys.stderr.write(f"Message delivery failed: {err}\n")
 
         try:
             consumer.subscribe([input_topic])
@@ -64,9 +66,8 @@ class TransformerJsonCLI:
                         
                         producer.produce(output_topic, key=str(message_proto.key).encode('utf-8'), value=orjson.dumps(json_message), callback=delivery_report)
                         producer.poll(0)
-                        print(f"Transformed and produced message: Key: {message_proto.key}")
-                    except Exception as e:
-                        print(f"Error processing message or transforming: {e}")
+                    except Exception:
+                        logger.exception("Error processing message or transforming")
 
                     messages_transformed += 1
                     if end_after is not None and messages_transformed >= end_after:
@@ -75,8 +76,8 @@ class TransformerJsonCLI:
 
         except KeyboardInterrupt:
             sys.stderr.write('%% Aborted by user\n')
-        except Exception as e:
-            print(f"An error occurred: {e}")
+        except Exception:
+            logger.exception("An error occurred")
         finally:
             if consumer:
                 consumer.close()

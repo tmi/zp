@@ -1,14 +1,19 @@
+import logging
 import fire
 import time
 import random
+import sys
 from confluent_kafka import Producer
 from message_pb2 import Message # ty: ignore[unresolved-import]
+
+logging.basicConfig(level=logging.WARNING)
+logger = logging.getLogger(__name__)
 
 class ProducerCLI:
     def __init__(self):
         pass
 
-    def produce(self, kafka_brokers: str, topic: str, num_messages: int | None = None):
+    def produce(self, kafka_brokers: str = "kafka:9092", topic: str = "t1", num_messages: int | None = None):
         """
         Produces random messages to a Kafka topic.
 
@@ -28,9 +33,7 @@ class ProducerCLI:
             """ Called once for each message produced to indicate delivery result.
                 Triggered by poll() or flush(). """
             if err is not None:
-                print(f"Message delivery failed: {err}")
-            else:
-                print(f"Message delivered to {msg.topic()} [{msg.partition()}] @ offset {msg.offset()}")
+                sys.stderr.write(f"Message delivery failed: {err}\n")
 
         i = 0
         while True:
@@ -41,11 +44,11 @@ class ProducerCLI:
 
             producer.produce(topic, key=str(message_proto.key).encode('utf-8'), value=message_proto.SerializeToString(), callback=delivery_report)
             producer.poll(0)  # Serve delivery callback queue.
-            time.sleep(0.1) # Sleep for 0.1 seconds
+            time.sleep(0.0001) # Sleep for 0.1 seconds
 
             i += 1
             if num_messages is not None and i >= num_messages:
-                print(f"Produced {i} messages, exiting.")
+                logger.warning(f"Produced {i} messages, exiting.")
                 break
 
         producer.flush() # Wait for any outstanding messages to be delivered and delivery report callbacks to be triggered.

@@ -1,8 +1,12 @@
+import logging
 import fire
 import psycopg2
 import sys
 from confluent_kafka import Consumer, KafkaException
 from message_pb2 import Message # ty: ignore[unresolved-import]
+
+logging.basicConfig(level=logging.WARNING)
+logger = logging.getLogger(__name__)
 
 class TransformerPostgresCLI:
     def __init__(self):
@@ -27,14 +31,14 @@ class TransformerPostgresCLI:
                 )
             """)
             conn.commit()
-            print("Table 'kafka_messages' created or already exists.")
-        except Exception as e:
-            print(f"Error creating table: {e}")
+            logger.warning("Table 'kafka_messages' created or already exists.")
+        except Exception:
+            logger.exception("Error creating table")
         finally:
             if conn:
                 conn.close()
 
-    def run(self, kafka_brokers: str, topic: str, db_conn_string: str, end_after: int | None = None):
+    def run(self, kafka_brokers: str = "kafka:9092", topic: str = "t1", db_conn_string: str = "postgresql://postgres:pgt@postgres", end_after: int | None = None):
         """
         Consumes messages from Kafka and inserts them into a PostgreSQL table.
 
@@ -76,9 +80,8 @@ class TransformerPostgresCLI:
                         cur.execute("INSERT INTO kafka_messages (timestamp, key, value) VALUES (%s, %s, %s)",
                                     (message_proto.timestamp, message_proto.key, message_proto.value))
                         conn.commit()
-                        print(f"Inserted message into DB: Timestamp: {message_proto.timestamp}, Key: {message_proto.key}, Value: {message_proto.value}")
-                    except Exception as e:
-                        print(f"Error processing message or inserting into DB: {e}")
+                    except Exception:
+                        logger.exception("Error processing message or inserting into DB")
 
                     messages_processed += 1
                     if end_after is not None and messages_processed >= end_after:
@@ -87,8 +90,8 @@ class TransformerPostgresCLI:
 
         except KeyboardInterrupt:
             sys.stderr.write('% Aborted by user\n')
-        except Exception as e:
-            print(f"An error occurred: {e}")
+        except Exception:
+            logger.exception("An error occurred")
         finally:
             if consumer:
                 consumer.close()
