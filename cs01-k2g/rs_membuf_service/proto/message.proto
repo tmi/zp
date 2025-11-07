@@ -1,0 +1,9 @@
+syntax = "proto3";
+
+package kafka_pg_grafana;
+
+message Message {
+  int64 timestamp = 1;
+  int32 key = 2;
+  string value = 3;
+}
