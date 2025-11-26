@@ -1,7 +1,6 @@
 use anyhow::Result;
 use axum::{routing::get, Router};
 use std::sync::Arc;
-use tokio::sync::Mutex;
 use tracing::{info, Level};
 use tracing_subscriber::FmtSubscriber;
 
@@ -9,6 +8,7 @@ mod common;
 mod kafka_subscriber;
 mod cleanup_task;
 mod fetch_endpoint;
+mod updates_endpoint;
 
 #[tokio::main]
 async fn main() -> Result<()> {
@@ -20,10 +20,11 @@ async fn main() -> Result<()> {
 
     info!("Starting rs_agg_service...");
 
-    let app_state = Arc::new(Mutex::new(common::AppState::new()));
+    let app_state = Arc::new(common::AppState::new());
 
     let app = Router::new()
         .route("/fetch", get(fetch_endpoint::fetch_aggregated_data))
+        .route("/updates", get(updates_endpoint::ws_handler))
         .with_state(app_state.clone());
 
     let listener = tokio::net::TcpListener::bind("0.0.0.0:3000")

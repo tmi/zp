@@ -4,10 +4,9 @@ use anyhow::Result;
 use chrono::Utc;
 use rdkafka::{consumer::{Consumer, StreamConsumer}, ClientConfig, Message as KafkaMessage};
 use std::sync::Arc;
-use tokio::sync::Mutex;
 use tracing::info;
 
-pub async fn run_kafka_consumer(app_state: Arc<Mutex<AppState>>) -> Result<()> {
+pub async fn run_kafka_consumer(app_state: Arc<AppState>) -> Result<()> {
     let consumer: StreamConsumer = ClientConfig::new()
         .set("bootstrap.servers", "kafka:9092")
         .set("group.id", "rs_agg_service_group")
@@ -33,8 +32,9 @@ pub async fn run_kafka_consumer(app_state: Arc<Mutex<AppState>>) -> Result<()> {
                             if message_timestamp_ms < current_second_timestamp_ms + 1000 { // 1 second in milliseconds
                                 message_count_in_second += 1;
                             } else {
-                                let mut app_state_lock = app_state.lock().await;
-                                app_state_lock.aggregated_data.data.insert(current_second_timestamp_ms, message_count_in_second);
+                                let mut app_state_lock = app_state.aggregated_data.lock().await;
+                                app_state_lock.data.insert(current_second_timestamp_ms, message_count_in_second);
+                                let _ = app_state.tx.send((current_second_timestamp_ms, message_count_in_second));
 
                                 current_second_timestamp_ms = message_timestamp_ms / 1000 * 1000; // Update T
                                 message_count_in_second = 1; // Reset C and count the current message
