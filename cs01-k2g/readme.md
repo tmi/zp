@@ -1,8 +1,8 @@
 Demonstrates how to visualize kafka data in grafana, possibly going through a postgres/timescale first.
 
 # Environment setup
+Either use the docker compose file [here](docker-compose.yml), or run these commands granularly:
 ```
-# TODO docker compose
 network=devel-network
 docker network create $network
 docker run --rm  --name kafka --network $network -e KAFKA_LISTENERS='PLAINTEXT://kafka:9092,CONTROLLER://kafka:9093' -e KAFKA_CONTROLLER_QUORUM_VOTERS=1@kafka:9093 -e KAFKA_CONTROLLER_LISTENER_NAMES=CONTROLLER -e KAFKA_PROCESS_ROLES=broker,controller -e KAFKA_NODE_ID=1 -e KAFKA_ADVERTISED_LISTENER=PLAINTEXT://kafka:9092 -e KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR=1 apache/kafka:4.1.0

@@ -1,0 +1,69 @@
+services:
+  kafka:
+    image: apache/kafka:4.1.0
+    container_name: kafka
+    # TODO causes fail due to missing server.properties file
+    # command: sh -c "
+    #   /opt/kafka/bin/kafka-storage.sh format -t \"$$$(/opt/kafka/bin/kafka-storage.sh random-uuid)\" -c /opt/kafka/config/kraft/server.properties &&
+    #   /opt/kafka/bin/kafka-server-start.sh /opt/kafka/config/kraft/server.properties
+    #   "
+    environment:
+      KAFKA_LISTENERS: 'PLAINTEXT://kafka:9092,CONTROLLER://kafka:9093'
+      KAFKA_CONTROLLER_QUORUM_VOTERS: '1@kafka:9093'
+      KAFKA_CONTROLLER_LISTENER_NAMES: 'CONTROLLER'
+      KAFKA_PROCESS_ROLES: 'broker,controller'
+      KAFKA_NODE_ID: '1'
+      KAFKA_ADVERTISED_LISTENER: 'PLAINTEXT://kafka:9092'
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: '1'
+    restart: 'no'
+    networks:
+      - devel-network
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/kafka/bin/kafka-topics.sh --bootstrap-server kafka:9092 --list > /dev/null 2>&1"]
+      interval: 4s
+      timeout: 4s
+      retries: 5
+      start_period: 2s
+
+  postgres:
+    image: postgres:latest
+    container_name: postgres
+    environment:
+      POSTGRES_PASSWORD: 'pgt'
+    restart: 'no'
+    networks:
+      - devel-network
+
+  grafana:
+    image: grafana/grafana-enterprise:latest
+    container_name: grafana
+    ports:
+      - '3000:3000'
+    environment:
+      GF_PLUGINS_PREINSTALL: 'hamedkarbasi93-kafka-datasource'
+    restart: 'no'
+    networks:
+      - devel-network
+
+  kafka-topics:
+    image: apache/kafka:4.1.0
+    container_name: kafka-topics
+    depends_on:
+      kafka:
+        condition: service_healthy
+    command: |
+      sh -c '
+      # echo "Waiting for Kafka to be ready..." # NOTE healthcheck should be enough
+      # sleep 10
+      
+      /opt/kafka/bin/kafka-topics.sh --create --topic t1 --partitions 1 --bootstrap-server kafka:9092
+      /opt/kafka/bin/kafka-topics.sh --create --topic t1-json --partitions 1 --bootstrap-server kafka:9092
+      '
+    networks:
+      - devel-network
+    restart: 'no'
+
+networks:
+  devel-network:
+    name: devel-network
+    external: true
