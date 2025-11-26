@@ -244,7 +244,14 @@ def configure_grafana(
                 "from": "now-6h",
                 "to": "now"
             },
-            "timepicker": {},
+            "timepicker": {
+                "refresh_intervals": [
+                  "100ms",
+                  "1s",
+                  "5s",
+                  "10s",
+                ]
+            },
             "timezone": "",
             "version": 1
         },
@@ -422,7 +429,14 @@ def configure_grafana(
                 "from": "now-5m", # Display messages from the last 5 minutes
                 "to": "now"
             },
-            "timepicker": {},
+            "timepicker": {
+                "refresh_intervals": [
+                  "100ms",
+                  "1s",
+                  "5s",
+                  "10s",
+                ]
+            },
             "timezone": "",
             "version": 1
         },

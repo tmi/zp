@@ -13,7 +13,7 @@ class ProducerCLI:
     def __init__(self):
         pass
 
-    def produce(self, kafka_brokers: str = "kafka:9092", topic: str = "t1", num_messages: int | None = None):
+    def produce(self, kafka_brokers: str = "kafka:9092", topic: str = "t1", num_messages: int | None = None, rate: int = 3):
         """
         Produces random messages to a Kafka topic.
 
@@ -21,6 +21,7 @@ class ProducerCLI:
             kafka_brokers: Comma-separated Kafka broker addresses (e.g., "localhost:9092").
             topic: The Kafka topic to produce to.
             num_messages: Number of messages to produce. If None, produces forever.
+            rate: Will produce one message every 1e-rate seconds
         """
         conf = {
             'bootstrap.servers': kafka_brokers,
@@ -44,7 +45,7 @@ class ProducerCLI:
 
             producer.produce(topic, key=str(message_proto.key).encode('utf-8'), value=message_proto.SerializeToString(), callback=delivery_report)
             producer.poll(0)  # Serve delivery callback queue.
-            time.sleep(0.0001) # Sleep for 0.1 seconds
+            time.sleep(10**-rate)
 
             i += 1
             if num_messages is not None and i >= num_messages:
