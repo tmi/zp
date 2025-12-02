@@ -52,7 +52,11 @@ async fn handle_socket(socket: WebSocket, state: Arc<AppState>) {
                 bc_msg = rx.recv() => {
                     match bc_msg {
                         Ok((timestamp, value)) => {
-                            let message = format!("{}=>{}", timestamp, value);
+                            let json_message = serde_json::json!([
+                                {"timestamp": timestamp,
+                                 "value": value}
+                            ]);
+                            let message = json_message.to_string();
                             if sender.send(Message::Text(message)).await.is_err() {
                                 error!("Failed to send broadcast message, client disconnected");
                                 break;

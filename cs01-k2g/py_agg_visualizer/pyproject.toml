@@ -1,0 +1,25 @@
+[project]
+name = "py_agg_visualizer"
+version = "0.1.0"
+description = "A Python-JavaScript microservice to visualize rs_agg_service output."
+dependencies = [
+    "fastapi",
+    "uvicorn",
+    "fire",
+    "jinja2", # For templating HTML
+]
+requires-python = ">= 3.9"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.rye]
+managed = true
+dev-dependencies = []
+
+[tool.hatch.metadata]
+allow-direct-references = true
+
+[tool.hatch.build.targets.wheel]
+packages = ["."]

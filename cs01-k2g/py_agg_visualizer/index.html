@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Real-Time Data Dashboard</title>
+    <!-- Load Tailwind CSS for simple styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Optional: Ensure the body takes full height for centering */
+        html, body {
+            height: 100%;
+            margin: 0;
+            background-color: #f7f9fb;
+        }
+        /* Style the chart container */
+        #chart-container {
+            max-width: 1200px;
+            width: 95%;
+            margin: 2rem auto;
+            background-color: white;
+            padding: 1.5rem;
+            border-radius: 0.75rem;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+    </style>
+</head>
+<body class="font-sans antialiased">
+
+    <div class="flex flex-col items-center justify-center p-4">
+        <h1 class="text-3xl font-bold text-gray-800 mb-2">Real-Time WebSocket Data Stream</h1>
+        <p id="connection-status" class="text-sm font-medium text-gray-500">Connecting...</p>
+    </div>
+
+    <!-- Chart Container -->
+    <div id="chart-container">
+        <canvas id="realtimeChart"></canvas>
+    </div>
+
+    <!-- Load Chart.js and its date/time adapter (Luxon) -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/luxon@3.4.4/build/global/luxon.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-luxon@1.3.1/dist/chartjs-adapter-luxon.umd.min.js"></script>
+
+    <script>
+        // --- Configuration Constants ---
+        // IMPORTANT: Replace this with the actual URL of your microservice's WebSocket endpoint
+        const WEBSOCKET_URL = `{{ rs_agg_service_url }}/updates`.replace("http", "ws"); 
+
+        // Store the incoming data points
+        const chartData = []; 
+        
+        // Maximum number of points to display (optional sliding window)
+        const MAX_DATA_POINTS = 300; 
+        
+        // Get the element to display connection status
+        const statusElement = document.getElementById('connection-status');
+        
+        // --- Chart Initialization (using Chart.js) ---
+        const ctx = document.getElementById('realtimeChart').getContext('2d');
+        const realtimeChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                datasets: [{
+                    label: 'Real-Time Value',
+                    data: chartData,
+                    borderColor: 'rgb(59, 130, 246)', // Blue 500
+                    backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                    borderWidth: 2,
+                    pointRadius: 0, // Hide points for a smooth line
+                    tension: 0.1,
+                    fill: true,
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                animation: false, // Turn off animation for high-frequency updates
+                plugins: {
+                    legend: {
+                        display: true,
+                        position: 'top',
+                    },
+                    tooltip: {
+                        // Graphana-style tooltips: show exact value on hover
+                        mode: 'index',
+                        intersect: false,
+                        callbacks: {
+                            title: (tooltipItems) => {
+                                // Format the timestamp (x-axis) for the tooltip title
+                                const date = Luxon.DateTime.fromMillis(tooltipItems[0].parsed.x);
+                                return date.toFormat('HH:mm:ss.SSS');
+                            },
+                            label: (context) => {
+                                // Format the value (y-axis) for the tooltip label
+                                let label = context.dataset.label || '';
+                                if (label) {
+                                    label += ': ';
+                                }
+                                label += context.parsed.y.toFixed(2);
+                                return label;
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        type: 'time',
+                        time: {
+                            unit: 'second',
+                            displayFormats: {
+                                second: 'HH:mm:ss',
+                                minute: 'HH:mm',
+                            }
+                        },
+                        title: {
+                            display: true,
+                            text: 'Time'
+                        }
+                    },
+                    y: {
+                        title: {
+                            display: true,
+                            text: 'Value'
+                        },
+                        // Ensure the Y-axis starts near the data, but adjust as needed
+                        beginAtZero: false 
+                    }
+                }
+            }
+        });
+
+        // --- WebSocket Implementation ---
+        
+        function connectWebSocket() {
+            const ws = new WebSocket(WEBSOCKET_URL);
+
+            ws.onopen = () => {
+                statusElement.textContent = 'Connected. Waiting for data...';
+                statusElement.classList.remove('text-red-500', 'text-gray-500');
+                statusElement.classList.add('text-green-500');
+                console.log('WebSocket connection established.');
+            };
+
+            ws.onmessage = (event) => {
+                try {
+                    // Data format expected: [{"timestamp": ts, "value": v}]
+                    const dataArray = JSON.parse(event.data);
+                    
+                    if (dataArray && dataArray.length > 0) {
+                        // We only care about the latest point in this specific format
+                        const latestPoint = dataArray[0]; 
+                        
+                        const newPoint = {
+                            // Chart.js expects {x: <timestamp>, y: <value>}
+                            x: latestPoint.timestamp, // Assuming ts is milliseconds since epoch
+                            y: latestPoint.value
+                        };
+                        
+                        // 1. Add new point
+                        chartData.push(newPoint);
+
+                        // 2. Implement sliding window (remove oldest data if max is reached)
+                        if (chartData.length > MAX_DATA_POINTS) {
+                            chartData.shift(); 
+                        }
+
+                        // 3. Update the chart immediately
+                        realtimeChart.update();
+                    }
+
+                } catch (e) {
+                    console.error("Error processing WebSocket message:", e, event.data);
+                }
+            };
+
+            ws.onclose = (event) => {
+                statusElement.textContent = `Disconnected. Attempting reconnect... (Code: ${event.code})`;
+                statusElement.classList.remove('text-green-500');
+                statusElement.classList.add('text-red-500');
+                console.warn('WebSocket closed. Reconnecting in 5 seconds...', event);
+                
+                // Attempt to reconnect after a delay
+                setTimeout(connectWebSocket, 5000); 
+            };
+
+            ws.onerror = (err) => {
+                statusElement.textContent = 'Connection Error. Retrying...';
+                statusElement.classList.remove('text-green-500');
+                statusElement.classList.add('text-red-500');
+                console.error('WebSocket error:', err);
+                ws.close(); // Force close to trigger the onclose/reconnect logic
+            };
+        }
+
+        // Start the connection process
+        window.onload = connectWebSocket;
+    </script>
+
+</body>
+</html>

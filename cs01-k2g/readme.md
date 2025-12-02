@@ -12,7 +12,8 @@ docker run --rm --name postgres --network $network -e POSTGRES_PASSWORD=pgt post
 docker run --rm --name grafana --network $network -p 3000:3000 -e GF_PLUGINS_PREINSTALL=hamedkarbasi93-kafka-datasource grafana/grafana-enterprise
 ```
 
-# Demonstration
+# Timescale/Grafana
+## Demonstration
 ```
 cd python
 N=10
@@ -24,7 +25,8 @@ uv run python ./configure_grafana_datasource.py
 ```
 then open grafana at :3000, with admin/admin, and go to dashboards
 
-# Performance notes
+
+## Performance notes
 The `perf_bench` script is able to benchmark all modes, with the following definition:
 - postgres: fetch all messages in a given time window, then sleep(x), then fetch all messages from the same time window. Extra messages represent `lag`.
 - kafka: note last offset at the start, then seek to beginning of given time window, then fetch all messages (windowStart, lastAtStart), then keep fetching (lastAtStart, windowEnd). The second set of messages represents `lag`.
@@ -33,6 +35,13 @@ Only at message rates 60k/s we started observing any lag -- 1s of messages in po
 
 This does not take into account the fetch speed itself -- kafka is ~100x slower at higher message volumes.
 
-# Next steps
+## Next steps
 1. Investigate options for proto-kafka reading from grafana
 2. Install timescale, define the table as a hypertable, add some aggregations
+
+# Direct Visualization
+## Demonstration
+In one terminal run `cargo run -- --simulate` in `rs_agg_service`, in another `uv run python ./main.py serve`, and then open `http://localhost:3001` in ya browser.
+Or setup kafka + producer as in the previous example, and run the rs agg service without `--simulate`.
+The frontend looks like this: ![screenshot](screenshot-py_agg_client.png "Frontend").
+
