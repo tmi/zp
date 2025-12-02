@@ -6,6 +6,8 @@ edition = "2021"
 [dependencies]
 tokio = { version = "1", features = ["full"] }
 axum = { version = "0.7", features = ["ws"] }
+clap = { version = "4", features = ["derive", "env"] }
+rand = "0.8"
 rdkafka = { version = "0.30", features = ["cmake-build"] }
 prost = "0.14"
 prost-derive = "0.14"

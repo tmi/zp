@@ -34,7 +34,7 @@ pub async fn run_kafka_consumer(app_state: Arc<AppState>) -> Result<()> {
                             } else {
                                 let mut app_state_lock = app_state.aggregated_data.lock().await;
                                 app_state_lock.data.insert(current_second_timestamp_ms, message_count_in_second);
-                                let _ = app_state.tx.send((current_second_timestamp_ms, message_count_in_second));
+                                crate::common::safe_broadcast(&app_state.tx, (current_second_timestamp_ms, message_count_in_second));
 
                                 current_second_timestamp_ms = message_timestamp_ms / 1000 * 1000; // Update T
                                 message_count_in_second = 1; // Reset C and count the current message

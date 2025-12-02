@@ -15,7 +15,7 @@ sdist = { url = "https://files.pythonhosted.org/packages/1b/1b/84c63f592ecdfbb3d
 [[package]]
 name = "py-agg-client"
 version = "0.1.0"
-source = { editable = "." }
+source = { virtual = "." }
 dependencies = [
     { name = "fire" },
     { name = "websockets" },
