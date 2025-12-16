@@ -62,15 +62,16 @@ def _delete_dashboard_by_uid(grafana_url: str, grafana_user: str, grafana_passwo
 def configure_grafana(
     grafana_host: str = "grafana",
     grafana_port: int = 3000,
-    grafana_user: str = "admin",
-    grafana_password: str = "admin",
+    grafana_user: str = "bdmin",
+    grafana_password: str = "bdmin",
     db_host: str = "postgres",
     db_port: int = 5432,
     db_name: str = "postgres",
     db_user: str = "postgres",
     db_password: str = "pgt",
     postgres_datasource_name: str = "PostgreSQL_Kafka_Messages",
-    postgres_dashboard_title: str = "Kafka Messages Table",
+    postgres_dashboard_title1: str = "Kafka Messages Table",
+    postgres_dashboard_title2: str = "Kafka Messages Agg Table",
     kafka_brokers: str = "kafka:9092",
     kafka_topic: str = "t1-json",
     kafka_datasource_name: str = "Kafka_t1_json",
@@ -112,17 +113,24 @@ def configure_grafana(
         "name": postgres_datasource_name,
         "type": "postgres",
         "access": "proxy",
-        "isDefault": True,
+        "isDefault": False,
         "url": f"{db_host}:{db_port}",
-        "database": db_name,
         "user": db_user,
         "secureJsonData": {
             "password": db_password
         },
+        'readOnly': False,
         "jsonData": {
             "sslmode": "disable",
             "timescaledb": False,
-            "database": db_name
+            "database": db_name,
+            'connMaxLifetime': 14400,
+            'maxIdleConns': 100,
+            'maxIdleConnsAuto': True,
+            'maxOpenConns': 100,
+            'pdcInjected': False,
+            'postgresVersion': 1800,
+            'sslmode': 'disable',
         }
     }
 
@@ -150,20 +158,21 @@ def configure_grafana(
         sys.exit(1)
 
     # --- Dashboard Configuration (PostgreSQL) ---
-    try:
-        existing_dashboard_uid = _get_dashboard_uid_by_title(grafana_url, grafana_user, grafana_password, postgres_dashboard_title)
-        if existing_dashboard_uid:
-            print(f"Dashboard '{postgres_dashboard_title}' already exists. Deleting it...")
-            _delete_dashboard_by_uid(grafana_url, grafana_user, grafana_password, existing_dashboard_uid)
-    except Exception as e:
-        print(f"Error checking or deleting existing PostgreSQL dashboard: {e}")
-        sys.exit(1)
+    for postgres_dashboard_title in (postgres_dashboard_title1, postgres_dashboard_title2):
+        try:
+            existing_dashboard_uid = _get_dashboard_uid_by_title(grafana_url, grafana_user, grafana_password, postgres_dashboard_title)
+            if existing_dashboard_uid:
+                print(f"Dashboard '{postgres_dashboard_title}' already exists. Deleting it...")
+                _delete_dashboard_by_uid(grafana_url, grafana_user, grafana_password, existing_dashboard_uid)
+        except Exception as e:
+            print(f"Error checking or deleting existing PostgreSQL dashboard: {e}")
+            sys.exit(1)
 
-    dashboard_config = {
+    dashboard_config1 = {
         "dashboard": {
             "id": None,
             "uid": None,
-            "title": postgres_dashboard_title,
+            "title": postgres_dashboard_title1,
             "panels": [
                 {
                     "datasource": {
@@ -222,7 +231,8 @@ def configure_grafana(
                             },
                             "format": "table",
                             "group": [],
-                            "rawSql": "SELECT timestamp, key, value FROM kafka_messages ORDER BY timestamp DESC",
+                            # with ~100 msgs/sec, this runs in like 50ms -- presumably because of lack of LIMIT
+                            "rawSql": "SELECT timestamp, to_timestamp(timestamp/1000.0) as datetime, key, value FROM kafka_messages ORDER BY timestamp DESC",
                             "refId": "A",
                             "timeColumn": "timestamp",
                             "timeColumnType": "timestamp",
@@ -259,31 +269,91 @@ def configure_grafana(
         "overwrite": True
     }
 
+    dashboard_config2 = {
+        "dashboard": {
+            "title": postgres_dashboard_title2,
+            "uid": None,
+            "panels": [
+                {
+                    "id": 1,
+                    "type": "timeseries",
+                    "title": "Kafka Message Count per 100ms",
+                    "gridPos": { "h": 10, "w": 24, "x": 0, "y": 0 },
+                    "targets": [
+                        {
+                            "datasource": {
+                                "type": "postgres",
+                                "uid": postgres_datasource_name
+                            },
+                            # with ~100 msgs/sec, this runs in like 20ms
+                            "rawSql": """
+                                SELECT
+                                    to_timestamp(floor(extract(epoch from to_timestamp(timestamp/1000.0)) * 10) / 10) as time,
+                                    count(key) AS "count"
+                                FROM
+                                    kafka_messages
+                                WHERE
+                                    to_timestamp(timestamp/1000.0) >= $__timeFrom() and to_timestamp(timestamp/1000.0) < $__timeTo()
+                                GROUP BY
+                                    1
+                                ORDER BY
+                                    1
+                            """,
+                            "format": "time_series",
+                            "refId": "A"
+                        }
+                    ],
+                    "options": {
+                        "tooltip": { "sort": "desc", "value_type": "single" },
+                        "legend": { "displayMode": "list", "placement": "bottom", "calcs": ["max", "min", "mean"] }
+                    },
+                    "fieldConfig": {
+                        "defaults": {
+                            "unit": "short",
+                            "min": "0"
+                        }
+                    }
+                }
+            ],
+            "refresh": "100ms",
+            "time": { "from": "now-5m", "to": "now"},
+            "timepicker": {
+                "refresh_intervals": [
+                  "100ms",
+                  "1s",
+                  "5s",
+                  "10s",
+                ]
+            },
 
+        },
+        "folderId": 0,
+        "overwrite": True
+    }
 
+    for dashboard_config in (dashboard_config1, dashboard_config2):
+        try:
+            print(f"Attempting to create Grafana dashboard at {grafana_url}/api/dashboards/db...")
+            response = httpx.post(
+                f"{grafana_url}/api/dashboards/db",
+                headers=headers,
+                json=dashboard_config,
+                auth=(grafana_user, grafana_password)
+            )
+            response.raise_for_status()
 
-    try:
-        print(f"Attempting to create Grafana dashboard at {grafana_url}/api/dashboards/db...")
-        response = httpx.post(
-            f"{grafana_url}/api/dashboards/db",
-            headers=headers,
-            json=dashboard_config,
-            auth=(grafana_user, grafana_password)
-        )
-        response.raise_for_status()
+            print("Grafana dashboard created successfully!")
+            print(response.json())
 
-        print("Grafana dashboard created successfully!")
-        print(response.json())
-
-    except httpx.HTTPStatusError as e:
-        print(f"Error creating Grafana dashboard: {e.response.status_code} - {e.response.text}")
-        sys.exit(1)
-    except httpx.RequestError as e:
-        print(f"An error occurred while requesting {e.request.url!r}: {e}")
-        sys.exit(1)
-    except Exception as e:
-        print(f"An unexpected error occurred during dashboard creation: {e}")
-        sys.exit(1)
+        except httpx.HTTPStatusError as e:
+            print(f"Error creating Grafana dashboard: {e.response.status_code} - {e.response.text}")
+            sys.exit(1)
+        except httpx.RequestError as e:
+            print(f"An error occurred while requesting {e.request.url!r}: {e}")
+            sys.exit(1)
+        except Exception as e:
+            print(f"An unexpected error occurred during dashboard creation: {e}")
+            sys.exit(1)
 
 
     # --- Datasource Configuration (Kafka) ---
