@@ -28,8 +28,13 @@ services:
   postgres:
     image: postgres:latest
     container_name: postgres
+    # NOTE set these log settings only when troubleshooting lest you threaten both perf and disk
+    # NOTE this logs statements to stdout -> access via docker logs. For file logging, set logging_collector=on, and log_directory to somewhere
+    # NOTE to troubleshoot active connections etc, `select * from pg_stat_activity`
+    command: ["postgres", "-c", "log_duration=on", "-c", "log_min_duration_statement=10ms", "-c", "log_statement=all"]
     environment:
       POSTGRES_PASSWORD: 'pgt'
+      # NOTE we cant configure statement logging via ennvars, postgres does not accept every config opt as envvar
     restart: 'no'
     networks:
       - devel-network
@@ -42,6 +47,8 @@ services:
     environment:
       GF_PLUGINS_PREINSTALL: 'hamedkarbasi93-kafka-datasource'
       GF_DASHBOARDS_MIN_REFRESH_INTERVAL: '100ms'
+      GF_SECURITY_ADMIN_PASSWORD: 'bdmin'
+      GF_SECURITY_ADMIN_USER: 'bdmin'
     restart: 'no'
     networks:
       - devel-network
