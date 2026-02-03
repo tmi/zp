@@ -96,18 +96,18 @@ async fn main() {
 async fn create_tables(client: &mut Client) {
     client
         .batch_execute(
-            "CREATE TABLE IF NOT EXISTS table_a (
+            "CREATE TABLE IF NOT EXISTS tablea (
                 block_id VARCHAR PRIMARY KEY,
                 data JSONB
             )",
         )
         .await
         .unwrap();
-    println!("Created table_a");
+    println!("Created tablea");
 
     client
         .batch_execute(
-            "CREATE TABLE IF NOT EXISTS table_b (
+            "CREATE TABLE IF NOT EXISTS tableb (
                 block_id VARCHAR,
                 outer_id VARCHAR,
                 outer_ts TIMESTAMPTZ,
@@ -117,11 +117,11 @@ async fn create_tables(client: &mut Client) {
         )
         .await
         .unwrap();
-    println!("Created table_b");
+    println!("Created tableb");
 
     client
         .batch_execute(
-            "CREATE TABLE IF NOT EXISTS table_c (
+            "CREATE TABLE IF NOT EXISTS tablec (
                 block_id VARCHAR,
                 outer_id VARCHAR,
                 outer_ts TIMESTAMPTZ,
@@ -133,7 +133,7 @@ async fn create_tables(client: &mut Client) {
         )
         .await
         .unwrap();
-    println!("Created table_c");
+    println!("Created tablec");
 }
 
 async fn clean_table(client: &mut Client, table: &Table) {
@@ -179,7 +179,7 @@ async fn fill_table(client: &mut Client, table: &Table, n: i32, block_size: i32,
                 let data = json!(outer_structs);
                 client
                     .execute(
-                        "INSERT INTO table_a (block_id, data) VALUES ($1, $2)",
+                        "INSERT INTO tablea (block_id, data) VALUES ($1, $2)",
                         &[&block_id, &data],
                     )
                     .await
@@ -190,7 +190,7 @@ async fn fill_table(client: &mut Client, table: &Table, n: i32, block_size: i32,
                     let data = json!(inner_structs);
                     client
                         .execute(
-                            "INSERT INTO table_b (block_id, outer_id, outer_ts, inner_structs) VALUES ($1, $2, $3, $4)",
+                            "INSERT INTO tableb (block_id, outer_id, outer_ts, inner_structs) VALUES ($1, $2, $3, $4)",
                             &[&block_id, &outer_id, &outer_ts, &data],
                         )
                         .await
@@ -204,7 +204,7 @@ async fn fill_table(client: &mut Client, table: &Table, n: i32, block_size: i32,
                         let threshold = inner["threshold"].as_f64().unwrap() as f32;
                         client
                             .execute(
-                                "INSERT INTO table_c (block_id, outer_id, outer_ts, inner_id, volume, threshold) VALUES ($1, $2, $3, $4, $5, $6)",
+                                "INSERT INTO tablec (block_id, outer_id, outer_ts, inner_id, volume, threshold) VALUES ($1, $2, $3, $4, $5, $6)",
                                 &[&block_id, &outer_id, &outer_ts, &inner["inner_id"].as_str().unwrap(), &volume, &threshold],
                             )
                             .await
@@ -230,7 +230,7 @@ async fn query_table(client: &mut Client, table: &Table) {
                     FROM (
                         SELECT jsonb_array_elements(d->2) as d
                         FROM (
-                            SELECT jsonb_array_elements(data) as d from table_a
+                            SELECT jsonb_array_elements(data) as d from tablea
                         ) as outer_structs
                     ) as inner_structs
                     WHERE (d->>'threshold')::REAL > 0.5",
@@ -245,7 +245,7 @@ async fn query_table(client: &mut Client, table: &Table) {
                     "SELECT
                         (d->>'volume')::INT as volume
                     FROM (
-                        SELECT jsonb_array_elements(inner_structs) as d from table_b
+                        SELECT jsonb_array_elements(inner_structs) as d from tableb
                     ) as inner_structs
                     WHERE (d->>'threshold')::REAL > 0.5",
                     &[],
@@ -256,7 +256,7 @@ async fn query_table(client: &mut Client, table: &Table) {
         Table::TableC => {
             client
                 .query(
-                    "SELECT volume FROM table_c WHERE threshold > 0.5",
+                    "SELECT volume FROM tablec WHERE threshold > 0.5",
                     &[],
                 )
                 .await
