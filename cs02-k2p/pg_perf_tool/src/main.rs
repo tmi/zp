@@ -43,6 +43,7 @@ enum Table {
     TableA,
     TableB,
     TableC,
+    TableE,
 }
 
 impl std::fmt::Display for Table {
@@ -134,6 +135,21 @@ async fn create_tables(client: &mut Client) {
         .await
         .unwrap();
     println!("Created tablec");
+    client
+        .batch_execute(
+            "CREATE TABLE IF NOT EXISTS tablee (
+                block_id VARCHAR,
+                outer_id VARCHAR,
+                outer_ts TIMESTAMPTZ,
+                inner_ids VARCHAR[],
+                volumes INT[],
+                thresholds REAL[],
+                PRIMARY KEY (block_id, outer_id)
+            )",
+        )
+        .await
+        .unwrap();
+    println!("Created tablee");
 }
 
 async fn clean_table(client: &mut Client, table: &Table) {
@@ -212,6 +228,25 @@ async fn fill_table(client: &mut Client, table: &Table, n: i32, block_size: i32,
                     }
                 }
             }
+            Table::TableE => {
+                for (outer_id, outer_ts, inner_structs) in outer_structs {
+                    let mut inner_ids = Vec::new();
+                    let mut volumes = Vec::new();
+                    let mut thresholds = Vec::new();
+                    for inner in inner_structs {
+                        inner_ids.push(inner["inner_id"].as_str().unwrap().to_string());
+                        volumes.push(inner["volume"].as_i64().unwrap() as i32);
+                        thresholds.push(inner["threshold"].as_f64().unwrap() as f32);
+                    }
+                    client
+                        .execute(
+                            "INSERT INTO tablee (block_id, outer_id, outer_ts, inner_ids, volumes, thresholds) VALUES ($1, $2, $3, $4, $5, $6)",
+                            &[&block_id, &outer_id, &outer_ts, &inner_ids, &volumes, &thresholds],
+                        )
+                        .await
+                        .unwrap();
+                }
+            }
         }
     }
 
@@ -257,6 +292,20 @@ async fn query_table(client: &mut Client, table: &Table) {
             client
                 .query(
                     "SELECT volume FROM tablec WHERE threshold > 0.5",
+                    &[],
+                )
+                .await
+                .unwrap()
+        }
+        Table::TableE => {
+            client
+                .query(
+                    "SELECT
+                        s.volume
+                    FROM (
+                        SELECT unnest(volumes) as volume, unnest(thresholds) as threshold FROM tablee
+                    ) as s
+                    WHERE s.threshold > 0.5",
                     &[],
                 )
                 .await
