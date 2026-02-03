@@ -1,70 +1,66 @@
 use async_trait::async_trait;
-use std::time::Instant;
 use tokio_postgres::Client;
 
 use super::TableOperations;
+
+//
+// This is the best attempt to implement the fill for table d.
+//
+// #[derive(Debug)]
+// struct InnerStruct {
+//     inner_id: String,
+//     volume: i32,
+//     threshold: f32,
+// }
+//
+// impl ToSql for InnerStruct {
+//     fn to_sql(
+//         &self,
+//         ty: &Type,
+//         out: &mut BytesMut,
+//     ) -> Result<IsNull, Box<dyn std::error::Error + Sync + Send>> {
+//         out.extend_from_slice(&3i32.to_be_bytes());
+//         self.inner_id.to_sql(ty, out)?;
+//         self.volume.to_sql(ty, out)?;
+//         self.threshold.to_sql(ty, out)?;
+//         Ok(IsNull::No)
+//     }
+
+//     fn accepts(ty: &Type) -> bool {
+//         matches!(ty.name(), "inner_struct")
+//     }
+
+//     to_sql_checked!();
+// }
 
 pub struct TableD;
 
 #[async_trait]
 impl TableOperations for TableD {
-    async fn create(&self, client: &mut Client) {
-        client
-            .batch_execute("CREATE TYPE inner_struct AS (inner_id VARCHAR, volume INT, threshold REAL)")
-            .await
-            .ok();
-        client
-            .batch_execute(
-                "CREATE TABLE IF NOT EXISTS tabled (
-                    block_id VARCHAR,
-                    outer_id VARCHAR,
-                    outer_ts TIMESTAMPTZ,
-                    inner_structs inner_struct[],
-                    PRIMARY KEY (block_id, outer_id)
-                )",
-            )
-            .await
-            .unwrap();
-        println!("Created tabled");
+    fn table_name(&self) -> &str {
+        "tabled"
     }
 
-    async fn clean(&self, client: &mut Client) {
-        client
-            .execute("TRUNCATE TABLE tabled", &[])
-            .await
-            .unwrap();
-        println!("Cleaned tabled");
+    fn create_string(&self) -> &str {
+        "CREATE TABLE IF NOT EXISTS tabled (
+            block_id VARCHAR,
+            outer_id VARCHAR,
+            outer_ts TIMESTAMPTZ,
+            inner_structs inner_struct[],
+            PRIMARY KEY (block_id, outer_id)
+        )"
+    }
+
+    fn query_string(&self) -> &str {
+        "SELECT
+            (s.inner).volume
+        FROM (
+            SELECT unnest(inner_structs) as inner FROM tabled
+        ) as s
+        WHERE (s.inner).threshold > 0.5"
     }
 
     async fn fill(&self, _client: &mut Client, _n: i32, _block_size: i32, _outer_size: i32) {
         panic!("fill for table d is not implemented");
-    }
-
-    async fn query(&self, client: &mut Client) {
-        let start = Instant::now();
-        let rows = client
-            .query(
-                "SELECT
-                    (s.inner).volume
-                FROM (
-                    SELECT unnest(inner_structs) as inner FROM tabled
-                ) as s
-                WHERE (s.inner).threshold > 0.5",
-                &[],
-            )
-            .await
-            .unwrap();
-
-        let duration = start.elapsed();
-
-        let mut total_volume = 0;
-        for row in &rows {
-            let volume: i32 = row.get("volume");
-            total_volume += volume;
-        }
-
-        println!("Query took {:?}", duration);
-        println!("Count: {}", rows.len());
-        println!("Total volume: {}", total_volume);
     }
 }

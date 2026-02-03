@@ -10,30 +10,29 @@ pub struct TableE;
 
 #[async_trait]
 impl TableOperations for TableE {
-    async fn create(&self, client: &mut Client) {
-        client
-            .batch_execute(
-                "CREATE TABLE IF NOT EXISTS tablee (
-                    block_id VARCHAR,
-                    outer_id VARCHAR,
-                    outer_ts TIMESTAMPTZ,
-                    inner_ids VARCHAR[],
-                    volumes INT[],
-                    thresholds REAL[],
-                    PRIMARY KEY (block_id, outer_id)
-                )",
-            )
-            .await
-            .unwrap();
-        println!("Created tablee");
+    fn table_name(&self) -> &str {
+        "tablee"
     }
 
-    async fn clean(&self, client: &mut Client) {
-        client
-            .execute("TRUNCATE TABLE tablee", &[])
-            .await
-            .unwrap();
-        println!("Cleaned tablee");
+    fn create_string(&self) -> &str {
+        "CREATE TABLE IF NOT EXISTS tablee (
+            block_id VARCHAR,
+            outer_id VARCHAR,
+            outer_ts TIMESTAMPTZ,
+            inner_ids VARCHAR[],
+            volumes INT[],
+            thresholds REAL[],
+            PRIMARY KEY (block_id, outer_id)
+        )"
+    }
+
+    fn query_string(&self) -> &str {
+        "SELECT
+            s.volume
+        FROM (
+            SELECT unnest(volumes) as volume, unnest(thresholds) as threshold FROM tablee
+        ) as s
+        WHERE s.threshold > 0.5"
     }
 
     async fn fill(&self, client: &mut Client, n: i32, block_size: i32, outer_size: i32) {
@@ -88,33 +87,5 @@ impl TableOperations for TableE {
 
         let duration = start.elapsed();
         println!("Inserted {} blocks in {:?}", n, duration);
-    }
-
-    async fn query(&self, client: &mut Client) {
-        let start = Instant::now();
-        let rows = client
-            .query(
-                "SELECT
-                    s.volume
-                FROM (
-                    SELECT unnest(volumes) as volume, unnest(thresholds) as threshold FROM tablee
-                ) as s
-                WHERE s.threshold > 0.5",
-                &[],
-            )
-            .await
-            .unwrap();
-
-        let duration = start.elapsed();
-
-        let mut total_volume = 0;
-        for row in &rows {
-            let volume: i32 = row.get("volume");
-            total_volume += volume;
-        }
-
-        println!("Query took {:?}", duration);
-        println!("Count: {}", rows.len());
-        println!("Total volume: {}", total_volume);
     }
 }

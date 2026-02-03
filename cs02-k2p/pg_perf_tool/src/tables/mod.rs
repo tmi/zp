@@ -6,11 +6,12 @@ pub mod table_b;
 pub mod table_c;
 pub mod table_d;
 pub mod table_e;
+pub mod util;
 
 #[async_trait]
 pub trait TableOperations {
-    async fn create(&self, client: &mut Client);
-    async fn clean(&self, client: &mut Client);
+    fn table_name(&self) -> &str;
+    fn create_string(&self) -> &str;
+    fn query_string(&self) -> &str;
     async fn fill(&self, client: &mut Client, n: i32, block_size: i32, outer_size: i32);
-    async fn query(&self, client: &mut Client);
 }

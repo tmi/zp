@@ -4,6 +4,7 @@ use tokio_postgres::{Client, NoTls};
 mod tables;
 use tables::{
     table_a::TableA, table_b::TableB, table_c::TableC, table_d::TableD, table_e::TableE,
+    util::{generic_clean, generic_create, generic_query},
     TableOperations,
 };
 
@@ -72,21 +73,31 @@ async fn connect() -> Client {
 #[tokio::main]
 async fn main() {
     let cli = Cli::parse();
+    let tables: Vec<Box<dyn TableOperations>> = vec![
+        Box::new(TableA),
+        Box::new(TableB),
+        Box::new(TableC),
+        Box::new(TableD),
+        Box::new(TableE),
+    ];
 
     match &cli.command {
         Commands::Create => {
             let mut client = connect().await;
-            TableA.create(&mut client).await;
-            TableB.create(&mut client).await;
-            TableC.create(&mut client).await;
-            TableD.create(&mut client).await;
-            TableE.create(&mut client).await;
+            client
+                .batch_execute(
+                    "CREATE TYPE inner_struct AS (inner_id VARCHAR, volume INT, threshold REAL)",
+                )
+                .await
+                .ok();
+            for table in tables {
+                generic_create(&mut client, table.create_string(), table.table_name()).await;
+            }
         }
         Commands::Clean { table } => {
             let mut client = connect().await;
-            get_table_operations(table)
-                .clean(&mut client)
-                .await;
+            let table_op = get_table_operations(table);
+            generic_clean(&mut client, table_op.table_name()).await;
         }
         Commands::Fill {
             table,
@@ -101,7 +112,8 @@ async fn main() {
         }
         Commands::Query { table } => {
             let mut client = connect().await;
-            get_table_operations(table).query(&mut client).await;
+            let table_op = get_table_operations(table);
+            generic_query(&mut client, table_op.query_string()).await;
         }
     }
 }

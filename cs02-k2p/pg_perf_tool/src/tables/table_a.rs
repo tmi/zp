@@ -10,25 +10,27 @@ pub struct TableA;
 
 #[async_trait]
 impl TableOperations for TableA {
-    async fn create(&self, client: &mut Client) {
-        client
-            .batch_execute(
-                "CREATE TABLE IF NOT EXISTS tablea (
-                    block_id VARCHAR PRIMARY KEY,
-                    data JSONB
-                )",
-            )
-            .await
-            .unwrap();
-        println!("Created tablea");
+    fn table_name(&self) -> &str {
+        "tablea"
     }
 
-    async fn clean(&self, client: &mut Client) {
-        client
-            .execute("TRUNCATE TABLE tablea", &[])
-            .await
-            .unwrap();
-        println!("Cleaned tablea");
+    fn create_string(&self) -> &str {
+        "CREATE TABLE IF NOT EXISTS tablea (
+            block_id VARCHAR PRIMARY KEY,
+            data JSONB
+        )"
+    }
+
+    fn query_string(&self) -> &str {
+        "SELECT
+            (d->>'volume')::INT as volume
+        FROM (
+            SELECT jsonb_array_elements(d->2) as d
+            FROM (
+                SELECT jsonb_array_elements(data) as d from tablea
+            ) as outer_structs
+        ) as inner_structs
+        WHERE (d->>'threshold')::REAL > 0.5"
     }
 
     async fn fill(&self, client: &mut Client, n: i32, block_size: i32, outer_size: i32) {
@@ -74,36 +76,5 @@ impl TableOperations for TableA {
 
         let duration = start.elapsed();
         println!("Inserted {} blocks in {:?}", n, duration);
-    }
-
-    async fn query(&self, client: &mut Client) {
-        let start = Instant::now();
-        let rows = client
-            .query(
-                "SELECT
-                    (d->>'volume')::INT as volume
-                FROM (
-                    SELECT jsonb_array_elements(d->2) as d
-                    FROM (
-                        SELECT jsonb_array_elements(data) as d from tablea
-                    ) as outer_structs
-                ) as inner_structs
-                WHERE (d->>'threshold')::REAL > 0.5",
-                &[],
-            )
-            .await
-            .unwrap();
-
-        let duration = start.elapsed();
-
-        let mut total_volume = 0;
-        for row in &rows {
-            let volume: i32 = row.get("volume");
-            total_volume += volume;
-        }
-
-        println!("Query took {:?}", duration);
-        println!("Count: {}", rows.len());
-        println!("Total volume: {}", total_volume);
     }
 }
