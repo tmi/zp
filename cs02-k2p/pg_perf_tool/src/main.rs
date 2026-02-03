@@ -2,7 +2,41 @@ use clap::{Parser, Subcommand};
 use rand::{thread_rng, Rng};
 use serde_json::json;
 use std::time::{Instant, SystemTime};
-use tokio_postgres::{Client, NoTls};
+use tokio_postgres::{
+    types::{to_sql_checked, IsNull, ToSql, Type},
+    Client, NoTls,
+};
+use bytes::BytesMut;
+
+//
+// This is the best attempt to implement the fill for table d.
+//
+// #[derive(Debug)]
+// struct InnerStruct {
+//     inner_id: String,
+//     volume: i32,
+//     threshold: f32,
+// }
+//
+// impl ToSql for InnerStruct {
+//     fn to_sql(
+//         &self,
+//         ty: &Type,
+//         out: &mut BytesMut,
+//     ) -> Result<IsNull, Box<dyn std::error::Error + Sync + Send>> {
+//         out.extend_from_slice(&3i32.to_be_bytes());
+//         self.inner_id.to_sql(ty, out)?;
+//         self.volume.to_sql(ty, out)?;
+//         self.threshold.to_sql(ty, out)?;
+//         Ok(IsNull::No)
+//     }
+
+//     fn accepts(ty: &Type) -> bool {
+//         matches!(ty.name(), "inner_struct")
+//     }
+
+//     to_sql_checked!();
+// }
 
 #[derive(Parser)]
 #[command(author, version, about, long_about = None)]
@@ -43,6 +77,7 @@ enum Table {
     TableA,
     TableB,
     TableC,
+    TableD,
     TableE,
 }
 
@@ -135,6 +170,24 @@ async fn create_tables(client: &mut Client) {
         .await
         .unwrap();
     println!("Created tablec");
+
+    client
+        .batch_execute("CREATE TYPE inner_struct AS (inner_id VARCHAR, volume INT, threshold REAL)")
+        .await
+        .ok();
+    client
+        .batch_execute(
+            "CREATE TABLE IF NOT EXISTS tabled (
+                block_id VARCHAR,
+                outer_id VARCHAR,
+                outer_ts TIMESTAMPTZ,
+                inner_structs inner_struct[],
+                PRIMARY KEY (block_id, outer_id)
+            )",
+        )
+        .await
+        .unwrap();
+    println!("Created tabled");
     client
         .batch_execute(
             "CREATE TABLE IF NOT EXISTS tablee (
@@ -228,6 +281,9 @@ async fn fill_table(client: &mut Client, table: &Table, n: i32, block_size: i32,
                     }
                 }
             }
+            Table::TableD => {
+                panic!("fill for table d is not implemented");
+            }
             Table::TableE => {
                 for (outer_id, outer_ts, inner_structs) in outer_structs {
                     let mut inner_ids = Vec::new();
@@ -292,6 +348,20 @@ async fn query_table(client: &mut Client, table: &Table) {
             client
                 .query(
                     "SELECT volume FROM tablec WHERE threshold > 0.5",
+                    &[],
+                )
+                .await
+                .unwrap()
+        }
+        Table::TableD => {
+            client
+                .query(
+                    "SELECT
+                        (s.inner).volume
+                    FROM (
+                        SELECT unnest(inner_structs) as inner FROM tabled
+                    ) as s
+                    WHERE (s.inner).threshold > 0.5",
                     &[],
                 )
                 .await
