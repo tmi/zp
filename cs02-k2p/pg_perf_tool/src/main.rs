@@ -31,6 +31,11 @@ enum Commands {
         #[arg(value_name = "OUTER_SIZE")]
         outer_size: i32,
     },
+    /// Queries the specified table
+    Query {
+        #[arg(value_name = "TABLE")]
+        table: String,
+    },
 }
 
 async fn connect() -> Client {
@@ -67,6 +72,10 @@ async fn main() {
         } => {
             let mut client = connect().await;
             fill_table(&mut client, table, *n, *block_size, *outer_size).await;
+        }
+        Commands::Query { table } => {
+            let mut client = connect().await;
+            query_table(&mut client, table).await;
         }
     }
 }
@@ -196,4 +205,63 @@ async fn fill_table(client: &mut Client, table: &str, n: i32, block_size: i32, o
 
     let duration = start.elapsed();
     println!("Inserted {} blocks in {:?}", n, duration);
+}
+
+async fn query_table(client: &mut Client, table: &str) {
+    let start = Instant::now();
+    let rows = match table {
+        "table_a" => {
+            client
+                .query(
+                    "SELECT
+                        (d->>'volume')::INT as volume
+                    FROM (
+                        SELECT jsonb_array_elements(d->2) as d
+                        FROM (
+                            SELECT jsonb_array_elements(data) as d from table_a
+                        ) as outer_structs
+                    ) as inner_structs
+                    WHERE (d->>'threshold')::REAL > 0.5",
+                    &[],
+                )
+                .await
+                .unwrap()
+        }
+        "table_b" => {
+            client
+                .query(
+                    "SELECT
+                        (d->>'volume')::INT as volume
+                    FROM (
+                        SELECT jsonb_array_elements(inner_structs) as d from table_b
+                    ) as inner_structs
+                    WHERE (d->>'threshold')::REAL > 0.5",
+                    &[],
+                )
+                .await
+                .unwrap()
+        }
+        "table_c" => {
+            client
+                .query(
+                    "SELECT volume FROM table_c WHERE threshold > 0.5",
+                    &[],
+                )
+                .await
+                .unwrap()
+        }
+        _ => panic!("Unknown table"),
+    };
+
+    let duration = start.elapsed();
+
+    let mut total_volume = 0;
+    for row in &rows {
+        let volume: i32 = row.get("volume");
+        total_volume += volume;
+    }
+
+    println!("Query took {:?}", duration);
+    println!("Count: {}", rows.len());
+    println!("Total volume: {}", total_volume);
 }
