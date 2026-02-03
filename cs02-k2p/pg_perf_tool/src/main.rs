@@ -1,5 +1,5 @@
 use clap::{Parser, Subcommand};
-use rand::Rng;
+use rand::{thread_rng, Rng};
 use serde_json::json;
 use std::time::{Instant, SystemTime};
 use tokio_postgres::{Client, NoTls};
@@ -11,19 +11,19 @@ struct Cli {
     command: Commands,
 }
 
-#[derive(Subcommand)]
+#[derive(Debug, Subcommand, Clone)]
 enum Commands {
     /// Creates the tables
     Create,
     /// Cleans the specified table
     Clean {
         #[arg(value_name = "TABLE")]
-        table: String,
+        table: Table,
     },
     /// Fills the specified table with random data
     Fill {
         #[arg(value_name = "TABLE")]
-        table: String,
+        table: Table,
         #[arg(value_name = "N")]
         n: i32,
         #[arg(value_name = "BLOCK_SIZE")]
@@ -34,8 +34,21 @@ enum Commands {
     /// Queries the specified table
     Query {
         #[arg(value_name = "TABLE")]
-        table: String,
+        table: Table,
     },
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, clap::ValueEnum)]
+enum Table {
+    TableA,
+    TableB,
+    TableC,
+}
+
+impl std::fmt::Display for Table {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", format!("{:?}", self).to_lowercase())
+    }
 }
 
 async fn connect() -> Client {
@@ -123,7 +136,7 @@ async fn create_tables(client: &mut Client) {
     println!("Created table_c");
 }
 
-async fn clean_table(client: &mut Client, table: &str) {
+async fn clean_table(client: &mut Client, table: &Table) {
     client
         .execute(format!("TRUNCATE TABLE {}", table).as_str(), &[])
         .await
@@ -131,8 +144,8 @@ async fn clean_table(client: &mut Client, table: &str) {
     println!("Cleaned table {}", table);
 }
 
-async fn fill_table(client: &mut Client, table: &str, n: i32, block_size: i32, outer_size: i32) {
-    let mut rng = rand::thread_rng();
+async fn fill_table(client: &mut Client, table: &Table, n: i32, block_size: i32, outer_size: i32) {
+    let mut rng = thread_rng();
 
     let blocks = (0..n)
         .map(|i| {
@@ -143,7 +156,7 @@ async fn fill_table(client: &mut Client, table: &str, n: i32, block_size: i32, o
                             json!({
                                 "inner_id": format!("inner_{}_{}_{}", i, j, k),
                                 "volume": rng.gen_range(0..=100),
-                                "threshold": rng.gen_range(0.0..=1.0)
+                                "threshold": rng.gen_range(0.0..=1.0),
                             })
                         })
                         .collect::<Vec<_>>();
@@ -162,7 +175,7 @@ async fn fill_table(client: &mut Client, table: &str, n: i32, block_size: i32, o
 
     for (block_id, outer_structs) in blocks {
         match table {
-            "table_a" => {
+            Table::TableA => {
                 let data = json!(outer_structs);
                 client
                     .execute(
@@ -172,7 +185,7 @@ async fn fill_table(client: &mut Client, table: &str, n: i32, block_size: i32, o
                     .await
                     .unwrap();
             }
-            "table_b" => {
+            Table::TableB => {
                 for (outer_id, outer_ts, inner_structs) in outer_structs {
                     let data = json!(inner_structs);
                     client
@@ -184,7 +197,7 @@ async fn fill_table(client: &mut Client, table: &str, n: i32, block_size: i32, o
                         .unwrap();
                 }
             }
-            "table_c" => {
+            Table::TableC => {
                 for (outer_id, outer_ts, inner_structs) in outer_structs {
                     for inner in inner_structs {
                         let volume = inner["volume"].as_i64().unwrap() as i32;
@@ -199,7 +212,6 @@ async fn fill_table(client: &mut Client, table: &str, n: i32, block_size: i32, o
                     }
                 }
             }
-            _ => panic!("Unknown table"),
         }
     }
 
@@ -207,10 +219,10 @@ async fn fill_table(client: &mut Client, table: &str, n: i32, block_size: i32, o
     println!("Inserted {} blocks in {:?}", n, duration);
 }
 
-async fn query_table(client: &mut Client, table: &str) {
+async fn query_table(client: &mut Client, table: &Table) {
     let start = Instant::now();
     let rows = match table {
-        "table_a" => {
+        Table::TableA => {
             client
                 .query(
                     "SELECT
@@ -227,7 +239,7 @@ async fn query_table(client: &mut Client, table: &str) {
                 .await
                 .unwrap()
         }
-        "table_b" => {
+        Table::TableB => {
             client
                 .query(
                     "SELECT
@@ -241,7 +253,7 @@ async fn query_table(client: &mut Client, table: &str) {
                 .await
                 .unwrap()
         }
-        "table_c" => {
+        Table::TableC => {
             client
                 .query(
                     "SELECT volume FROM table_c WHERE threshold > 0.5",
@@ -250,7 +262,6 @@ async fn query_table(client: &mut Client, table: &str) {
                 .await
                 .unwrap()
         }
-        _ => panic!("Unknown table"),
     };
 
     let duration = start.elapsed();
