@@ -97,7 +97,8 @@ def des_medium(data: bytes) -> Medium:
     dict2 = {}
     for _ in range(num_dict2):
         t_len_bytes = f.read(8)
-        if not t_len_bytes: break
+        if not t_len_bytes:
+            break
         t_len = struct.unpack('Q', t_len_bytes)[0]
         k = struct.unpack(f'{t_len}q', f.read(8 * t_len))
         v = des_small_from_file(f)

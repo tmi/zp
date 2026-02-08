@@ -122,7 +122,7 @@ def perf_test(method: str):
         "des_medium_tp_mean": des_medium_tp_time,
     }
 
-if __name__ == "__main__":
+def main():
     methods = ["struct", "pickle", "cloudpickle", "pydantic", "orjson", "protobuf", "avro", "fory"]
     results = {}
     for m in methods:
@@ -143,3 +143,6 @@ if __name__ == "__main__":
         def fmt(s, m_val):
             return f"{s/1000:.2f}µs / {m_val/1000:.2f}µs"
         print(f"| {m} | {r['size_small']}/{r['size_medium']} | {fmt(r['ser_small_mean'], r['ser_medium_mean'])} | {fmt(r['ser_small_tp_mean'], r['ser_medium_tp_mean'])} | {fmt(r['des_small_mean'], r['des_medium_mean'])} | {fmt(r['des_small_tp_mean'], r['des_medium_tp_mean'])} |")
+
+if __name__ == "__main__":
+    main()
