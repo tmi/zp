@@ -1,10 +1,10 @@
 import time
 import importlib
 from multiprocessing.pool import ThreadPool
-from generate import generate_small, generate_medium
+from .generate import generate_small, generate_medium
 
 def unit_test(method: str):
-    sd = importlib.import_module(f"sd_{method}")
+    sd = importlib.import_module(f".sd_{method}", package=__package__)
 
     small = generate_small(1)[0]
     data_small = sd.ser_small(small)
@@ -18,7 +18,7 @@ def unit_test(method: str):
     print(f"Unit test passed for {method}")
 
 def perf_test(method: str):
-    sd = importlib.import_module(f"sd_{method}")
+    sd = importlib.import_module(f".sd_{method}", package=__package__)
 
     n_small = 1000
     n_medium = 100

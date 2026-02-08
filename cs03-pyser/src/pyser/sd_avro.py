@@ -1,7 +1,7 @@
 import avro.schema
 import avro.io
 import io
-from schema import Small, Medium, MediumItem
+from .schema import Small, Medium, MediumItem
 from typing import Any, cast
 
 SMALL_SCHEMA_STR = """

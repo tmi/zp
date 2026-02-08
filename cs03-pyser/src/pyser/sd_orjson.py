@@ -1,5 +1,5 @@
 import orjson
-from schema import Small, Medium, MediumItem
+from .schema import Small, Medium, MediumItem
 
 def ser_small(obj: Small) -> bytes:
     return orjson.dumps(obj, option=orjson.OPT_SERIALIZE_DATACLASS)

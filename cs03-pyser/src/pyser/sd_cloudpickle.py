@@ -1,5 +1,5 @@
 import cloudpickle
-from schema import Small, Medium
+from .schema import Small, Medium
 
 def ser_small(obj: Small) -> bytes:
     return cloudpickle.dumps(obj)

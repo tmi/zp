@@ -1,6 +1,6 @@
 from pydantic import BaseModel, TypeAdapter
 from typing import List, Dict
-from schema import Small, Medium, MediumItem
+from .schema import Small, Medium, MediumItem
 
 class MediumPydantic(BaseModel):
     items: List[MediumItem]

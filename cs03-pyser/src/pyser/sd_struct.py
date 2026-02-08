@@ -1,5 +1,5 @@
 import struct
-from schema import Small, Medium, MediumItem
+from .schema import Small, Medium, MediumItem
 import io
 
 def _ser_str(s: str) -> bytes:

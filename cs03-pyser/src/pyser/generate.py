@@ -1,6 +1,6 @@
 import random
 import string
-from schema import Small, MediumItem, Medium
+from .schema import Small, MediumItem, Medium
 
 def _random_str(length: int = 10) -> str:
     return ''.join(random.choices(string.ascii_letters + string.digits, k=length))

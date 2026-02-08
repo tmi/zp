@@ -1,5 +1,5 @@
 import pickle
-from schema import Small, Medium
+from .schema import Small, Medium
 
 def ser_small(obj: Small) -> bytes:
     return pickle.dumps(obj)

@@ -1,5 +1,5 @@
-import schema_pb2 as _schema_pb2
-from schema import Small, Medium, MediumItem
+from . import schema_pb2 as _schema_pb2
+from .schema import Small, Medium, MediumItem
 from typing import Any, cast
 
 schema_pb2: Any = _schema_pb2

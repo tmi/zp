@@ -1,0 +1,8 @@
+avro>=1.12.1
+cloudpickle>=3.1.2
+grpcio-tools>=1.78.0
+numpy>=2.4.2
+orjson>=3.11.7
+protobuf>=6.33.5
+pydantic>=2.12.5
+pyfory>=0.14.1
