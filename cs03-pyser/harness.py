@@ -39,6 +39,7 @@ def perf_test(method: str):
     ser_small_time = (time.perf_counter_ns() - start) / 5 / n_small
 
     pool = ThreadPool(8)
+    pool.map(sd.ser_small, smalls)
     start = time.perf_counter_ns()
     for _ in range(5):
         pool.map(sd.ser_small, smalls)
@@ -56,6 +57,7 @@ def perf_test(method: str):
             res_small[i] = sd.des_small(out_small[i])
     des_small_time = (time.perf_counter_ns() - start) / 5 / n_small
 
+    pool.map(sd.des_small, out_small)
     start = time.perf_counter_ns()
     for _ in range(5):
         pool.map(sd.des_small, out_small)
@@ -73,6 +75,7 @@ def perf_test(method: str):
             out_medium[i] = sd.ser_medium(mediums[i])
     ser_medium_time = (time.perf_counter_ns() - start) / 5 / n_medium
 
+    pool.map(sd.ser_medium, mediums)
     start = time.perf_counter_ns()
     for _ in range(5):
         pool.map(sd.ser_medium, mediums)
@@ -90,6 +93,7 @@ def perf_test(method: str):
             res_medium[i] = sd.des_medium(out_medium[i])
     des_medium_time = (time.perf_counter_ns() - start) / 5 / n_medium
 
+    pool.map(sd.des_medium, out_medium)
     start = time.perf_counter_ns()
     for _ in range(5):
         pool.map(sd.des_medium, out_medium)
