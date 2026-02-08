@@ -38,7 +38,7 @@ def perf_test(method: str):
             out_small[i] = sd.ser_small(smalls[i])
     ser_small_time = (time.perf_counter_ns() - start) / 5 / n_small
 
-    pool = ThreadPool()
+    pool = ThreadPool(8)
     start = time.perf_counter_ns()
     for _ in range(5):
         pool.map(sd.ser_small, smalls)
