@@ -1,0 +1,7 @@
+proto:
+    uv run python -m grpc_tools.protoc -Isrc/pyser --python_out=src/pyser src/pyser/schema.proto
+
+val: proto
+    uv run ruff check .
+    uv run ty check
+    uv run pytest

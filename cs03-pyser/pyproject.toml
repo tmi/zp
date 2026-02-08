@@ -1,0 +1,33 @@
+[project]
+name = "cs03-pyser"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "avro>=1.12.1",
+    "cloudpickle>=3.1.2",
+    "grpcio-tools>=1.78.0",
+    "numpy>=2.4.2",
+    "orjson>=3.11.7",
+    "protobuf>=6.33.5",
+    "pydantic>=2.12.5",
+    "pyfory>=0.14.1",
+]
+
+[project.scripts]
+harness = "pyser.harness:main"
+
+[tool.setuptools]
+packages = ["pyser"]
+package-dir = {"" = "src"}
+
+[tool.setuptools.package-data]
+pyser = ["*.proto"]
+
+[dependency-groups]
+dev = [
+    "pytest>=9.0.2",
+    "ruff>=0.15.0",
+    "ty==0.0.15",
+]
