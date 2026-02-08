@@ -1,0 +1,47 @@
+syntax = "proto3";
+
+message SmallProto {
+  int64 i1 = 1;
+  int64 i2 = 2;
+  int64 i3 = 3;
+  int64 i4 = 4;
+  int64 i5 = 5;
+  double f1 = 6;
+  double f2 = 7;
+  double f3 = 8;
+  double f4 = 9;
+  double f5 = 10;
+  string s1 = 11;
+  string s2 = 12;
+  string s3 = 13;
+  string s4 = 14;
+  string s5 = 15;
+}
+
+message MediumItemProto {
+  int64 i1 = 1;
+  int64 i2 = 2;
+  int64 i3 = 3;
+  double f1 = 4;
+  double f2 = 5;
+  double f3 = 6;
+  string s1 = 7;
+  string s2 = 8;
+  string s3 = 9;
+}
+
+message TupleKey {
+  repeated int64 values = 1;
+}
+
+message MediumProto {
+  repeated MediumItemProto items = 1;
+  map<int64, SmallProto> dict1 = 2;
+
+  message Dict2Entry {
+    TupleKey key = 1;
+    SmallProto value = 2;
+  }
+  repeated Dict2Entry dict2 = 3;
+  map<string, SmallProto> dict3 = 4;
+}
