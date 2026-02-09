@@ -1,0 +1,9 @@
+[package]
+name = "onnx_bench_rust"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+ort = "2.0.0-rc.9" # Common ONNX Runtime wrapper
+ndarray = "0.15"
+byteorder = "1.4"
