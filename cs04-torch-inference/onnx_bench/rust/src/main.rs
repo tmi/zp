@@ -53,17 +53,20 @@ fn main() -> ort::Result<()> {
 
     // Set execution provider
     match args.device.as_str() {
+        "cpu" => {
+            builder = builder.with_execution_providers([ort::execution_providers::CPUExecutionProvider::default().build().error_on_failure()])?;
+        }
         "cuda" => {
-            builder = builder.with_execution_providers([ort::execution_providers::CUDAExecutionProvider::default().build()])?;
+            builder = builder.with_execution_providers([ort::execution_providers::CUDAExecutionProvider::default().build().error_on_failure()])?;
         }
         "coreml" => {
-            builder = builder.with_execution_providers([ort::execution_providers::CoreMLExecutionProvider::default().build()])?;
+            builder = builder.with_execution_providers([ort::execution_providers::CoreMLExecutionProvider::default().build().error_on_failure()])?;
         }
         "xnnpack" => {
-            builder = builder.with_execution_providers([ort::execution_providers::XNNPACKExecutionProvider::default().build()])?;
+            builder = builder.with_execution_providers([ort::execution_providers::XNNPACKExecutionProvider::default().build().error_on_failure()])?;
         }
         _ => {
-            builder = builder.with_execution_providers([ort::execution_providers::CPUExecutionProvider::default().build()])?;
+            panic!("Unknown device: {}. Supported: cpu, cuda, coreml, xnnpack", args.device);
         }
     }
 
