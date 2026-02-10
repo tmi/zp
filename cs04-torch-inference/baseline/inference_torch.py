@@ -29,30 +29,32 @@ def main() -> None:
 
     # Single inference
     # Warmup
-    with torch.no_grad():
+    with torch.inference_mode():
         model(single_input)
 
     latencies: List[float] = []
     for _ in range(20):
-        start = time.perf_counter_ns()
-        with torch.no_grad():
+        with torch.inference_mode():
+            start = time.perf_counter_ns()
             model(single_input)
-        latencies.append(time.perf_counter_ns() - start)
+            end = time.perf_counter_ns()
+        latencies.append(float(end - start))
 
     p95 = np.percentile(latencies, 95)
     print(f"Single inference P95: {p95 / 1e6:.4f} ms")
 
     # Batch inference
     # Warmup
-    with torch.no_grad():
+    with torch.inference_mode():
         model(batch_input)
 
     batch_latencies: List[float] = []
     for _ in range(3):
-        start = time.perf_counter_ns()
-        with torch.no_grad():
+        with torch.inference_mode():
+            start = time.perf_counter_ns()
             model(batch_input)
-        batch_latencies.append(time.perf_counter_ns() - start)
+            end = time.perf_counter_ns()
+        batch_latencies.append(float(end - start))
 
     mean_batch = np.mean(batch_latencies)
     print(f"Batch inference mean: {mean_batch / 1e6:.4f} ms")
