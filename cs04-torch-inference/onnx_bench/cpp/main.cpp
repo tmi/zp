@@ -45,28 +45,25 @@ int main(int argc, char* argv[]) {
         Ort::Session session(env, model_path.c_str(), session_options);
         Ort::MemoryInfo memory_info = Ort::MemoryInfo::CreateCpu(OrtArenaAllocator, OrtMemTypeDefault);
 
-        auto input_data = read_bin(single_input_path);
-
-        // This is a simplified example, real code would need to inspect model for input shapes
-        // and names properly.
         const char* input_names[] = {"x"};
         const char* output_names[] = {"output"};
 
         // Single inference
-        std::vector<int64_t> input_shape; // Need to set this based on model
-        if (model_type == "simple") input_shape = {1, 128};
-        else if (model_type == "rnn") input_shape = {1, 10, 32};
-        else if (model_type == "transformer") input_shape = {1, 16, 64};
+        auto single_input_data = read_bin(single_input_path);
+        std::vector<int64_t> single_input_shape;
+        if (model_type == "simple") single_input_shape = {1, 128};
+        else if (model_type == "rnn") single_input_shape = {1, 10, 32};
+        else if (model_type == "transformer") single_input_shape = {1, 16, 64};
 
-        auto input_tensor = Ort::Value::CreateTensor<float>(memory_info, input_data.data(), input_data.size(), input_shape.data(), input_shape.size());
+        auto single_input_tensor = Ort::Value::CreateTensor<float>(memory_info, single_input_data.data(), single_input_data.size(), single_input_shape.data(), single_input_shape.size());
 
         // Warmup
-        session.Run(Ort::RunOptions{nullptr}, input_names, &input_tensor, 1, output_names, 1);
+        session.Run(Ort::RunOptions{nullptr}, input_names, &single_input_tensor, 1, output_names, 1);
 
         std::vector<double> latencies;
         for (int i = 0; i < 20; ++i) {
             auto start = std::chrono::high_resolution_clock::now();
-            session.Run(Ort::RunOptions{nullptr}, input_names, &input_tensor, 1, output_names, 1);
+            session.Run(Ort::RunOptions{nullptr}, input_names, &single_input_tensor, 1, output_names, 1);
             auto end = std::chrono::high_resolution_clock::now();
             latencies.push_back(std::chrono::duration<double, std::milli>(end - start).count());
         }
@@ -74,6 +71,30 @@ int main(int argc, char* argv[]) {
         std::sort(latencies.begin(), latencies.end());
         double p95 = latencies[static_cast<int>(latencies.size() * 0.95)];
         std::cout << "Single inference P95 (C++ ONNX): " << p95 << " ms" << std::endl;
+
+        // Batch inference
+        auto batch_input_data = read_bin(batch_input_path);
+        std::vector<int64_t> batch_input_shape;
+        if (model_type == "simple") batch_input_shape = {20, 128};
+        else if (model_type == "rnn") batch_input_shape = {20, 10, 32};
+        else if (model_type == "transformer") batch_input_shape = {20, 16, 64};
+
+        auto batch_input_tensor = Ort::Value::CreateTensor<float>(memory_info, batch_input_data.data(), batch_input_data.size(), batch_input_shape.data(), batch_input_shape.size());
+
+        // Warmup
+        session.Run(Ort::RunOptions{nullptr}, input_names, &batch_input_tensor, 1, output_names, 1);
+
+        std::vector<double> batch_latencies;
+        for (int i = 0; i < 3; ++i) {
+            auto start = std::chrono::high_resolution_clock::now();
+            session.Run(Ort::RunOptions{nullptr}, input_names, &batch_input_tensor, 1, output_names, 1);
+            auto end = std::chrono::high_resolution_clock::now();
+            batch_latencies.push_back(std::chrono::duration<double, std::milli>(end - start).count());
+        }
+
+        double sum = std::accumulate(batch_latencies.begin(), batch_latencies.end(), 0.0);
+        double mean_batch = sum / batch_latencies.size();
+        std::cout << "Batch inference mean (C++ ONNX): " << mean_batch << " ms" << std::endl;
 
     } catch (const std::exception& e) {
         std::cerr << "Error: " << e.what() << std::endl;

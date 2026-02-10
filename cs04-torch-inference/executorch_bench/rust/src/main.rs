@@ -21,22 +21,43 @@ fn main() {
         return;
     }
     let model_type = &args[1];
-    let model_path = format!("data/{}_single.pte", model_type);
-    let _input_path = format!("data/example_input_single_{}.bin", model_type);
 
-    let mut module = Module::from_file(&model_path).expect("Failed to load module");
+    // Single inference
+    {
+        let model_path = format!("data/{}_single.pte", model_type);
+        let mut module = Module::from_file(&model_path).expect("Failed to load single module");
 
-    // Warmup
-    module.forward(&[]).expect("Warmup execution failed");
+        // Warmup
+        module.forward(&[]).expect("Single warmup execution failed");
 
-    let mut latencies = Vec::new();
-    for _ in 0..20 {
-        let start = Instant::now();
-        module.forward(&[]).expect("Execution failed");
-        latencies.push(start.elapsed().as_secs_f64() * 1000.0);
+        let mut latencies = Vec::new();
+        for _ in 0..20 {
+            let start = Instant::now();
+            module.forward(&[]).expect("Single execution failed");
+            latencies.push(start.elapsed().as_secs_f64() * 1000.0);
+        }
+
+        latencies.sort_by(|a, b| a.partial_cmp(b).unwrap());
+        let p95 = latencies[(latencies.len() as f64 * 0.95) as usize];
+        println!("Single inference P95 (Rust ExecuTorch): {:.4} ms", p95);
     }
 
-    latencies.sort_by(|a, b| a.partial_cmp(b).unwrap());
-    let p95 = latencies[(latencies.len() as f64 * 0.95) as usize];
-    println!("Single inference P95 (Rust ExecuTorch): {:.4} ms", p95);
+    // Batch inference
+    {
+        let model_path = format!("data/{}_batch.pte", model_type);
+        let mut module = Module::from_file(&model_path).expect("Failed to load batch module");
+
+        // Warmup
+        module.forward(&[]).expect("Batch warmup execution failed");
+
+        let mut latencies = Vec::new();
+        for _ in 0..3 {
+            let start = Instant::now();
+            module.forward(&[]).expect("Batch execution failed");
+            latencies.push(start.elapsed().as_secs_f64() * 1000.0);
+        }
+
+        let mean_batch: f64 = latencies.iter().sum::<f64>() / latencies.len() as f64;
+        println!("Batch inference mean (Rust ExecuTorch): {:.4} ms", mean_batch);
+    }
 }

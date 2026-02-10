@@ -34,60 +34,92 @@ int main(int argc, char* argv[]) {
         return 1;
     }
     std::string model_type = argv[1];
-    std::string model_path = "data/" + model_type + "_single.pte";
-    std::string input_path = "data/example_input_single_" + model_type + ".bin";
 
-    // Load the program
-    Result<FileDataLoader> loader = FileDataLoader::from(model_path.c_str());
-    if (!loader.ok()) {
-        std::cerr << "Failed to create loader" << std::endl;
-        return 1;
+    // Single inference
+    {
+        std::string model_path = "data/" + model_type + "_single.pte";
+        std::string input_path = "data/example_input_single_" + model_type + ".bin";
+
+        Result<FileDataLoader> loader = FileDataLoader::from(model_path.c_str());
+        if (!loader.ok()) {
+            std::cerr << "Failed to create single loader" << std::endl;
+            return 1;
+        }
+
+        Result<Program> program = Program::load(&loader.get());
+        if (!program.ok()) {
+            std::cerr << "Failed to load single program" << std::endl;
+            return 1;
+        }
+
+        Result<Method> method = program->load_method("forward");
+        if (!method.ok()) {
+            std::cerr << "Failed to load single method" << std::endl;
+            return 1;
+        }
+
+        // Warmup
+        Error error = method->execute();
+        if (error != Error::Ok) {
+            std::cerr << "Single execution failed" << std::endl;
+            return 1;
+        }
+
+        std::vector<double> latencies;
+        for (int i = 0; i < 20; ++i) {
+            auto start = std::chrono::high_resolution_clock::now();
+            method->execute();
+            auto end = std::chrono::high_resolution_clock::now();
+            latencies.push_back(std::chrono::duration<double, std::milli>(end - start).count());
+        }
+
+        std::sort(latencies.begin(), latencies.end());
+        double p95 = latencies[static_cast<int>(latencies.size() * 0.95)];
+        std::cout << "Single inference P95 (C++ ExecuTorch): " << p95 << " ms" << std::endl;
     }
 
-    Result<Program> program = Program::load(&loader.get());
-    if (!program.ok()) {
-        std::cerr << "Failed to load program" << std::endl;
-        return 1;
+    // Batch inference
+    {
+        std::string model_path = "data/" + model_type + "_batch.pte";
+        std::string input_path = "data/example_input_batch_" + model_type + ".bin";
+
+        Result<FileDataLoader> loader = FileDataLoader::from(model_path.c_str());
+        if (!loader.ok()) {
+            std::cerr << "Failed to create batch loader" << std::endl;
+            return 1;
+        }
+
+        Result<Program> program = Program::load(&loader.get());
+        if (!program.ok()) {
+            std::cerr << "Failed to load batch program" << std::endl;
+            return 1;
+        }
+
+        Result<Method> method = program->load_method("forward");
+        if (!method.ok()) {
+            std::cerr << "Failed to load batch method" << std::endl;
+            return 1;
+        }
+
+        // Warmup
+        Error error = method->execute();
+        if (error != Error::Ok) {
+            std::cerr << "Batch execution failed" << std::endl;
+            return 1;
+        }
+
+        std::vector<double> latencies;
+        for (int i = 0; i < 3; ++i) {
+            auto start = std::chrono::high_resolution_clock::now();
+            method->execute();
+            auto end = std::chrono::high_resolution_clock::now();
+            latencies.push_back(std::chrono::duration<double, std::milli>(end - start).count());
+        }
+
+        double sum = std::accumulate(latencies.begin(), latencies.end(), 0.0);
+        double mean_batch = sum / latencies.size();
+        std::cout << "Batch inference mean (C++ ExecuTorch): " << mean_batch << " ms" << std::endl;
     }
-
-    // Load the method
-    Result<Method> method = program->load_method("forward");
-    if (!method.ok()) {
-        std::cerr << "Failed to load method" << std::endl;
-        return 1;
-    }
-
-    // Load input data
-    std::vector<float> input_data;
-    try {
-        input_data = read_bin(input_path);
-    } catch (const std::exception& e) {
-        std::cerr << e.what() << std::endl;
-        return 1;
-    }
-
-    // Set input (Simplified, assuming first input is the one we want)
-    // In real ExecuTorch, setting inputs can be more involved depending on memory planning.
-    // method->set_input(tensor, 0);
-
-    // Warmup
-    Error error = method->execute();
-    if (error != Error::Ok) {
-        std::cerr << "Execution failed" << std::endl;
-        return 1;
-    }
-
-    std::vector<double> latencies;
-    for (int i = 0; i < 20; ++i) {
-        auto start = std::chrono::high_resolution_clock::now();
-        method->execute();
-        auto end = std::chrono::high_resolution_clock::now();
-        latencies.push_back(std::chrono::duration<double, std::milli>(end - start).count());
-    }
-
-    std::sort(latencies.begin(), latencies.end());
-    double p95 = latencies[static_cast<int>(latencies.size() * 0.95)];
-    std::cout << "Single inference P95 (C++ ExecuTorch): " << p95 << " ms" << std::endl;
 
     return 0;
 }

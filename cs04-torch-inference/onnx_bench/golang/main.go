@@ -31,7 +31,8 @@ func main() {
 	}
 	modelType := os.Args[1]
 	modelPath := fmt.Sprintf("data/%s.onnx", modelType)
-	inputPath := fmt.Sprintf("data/example_input_single_%s.bin", modelType)
+	singleInputPath := fmt.Sprintf("data/example_input_single_%s.bin", modelType)
+	batchInputPath := fmt.Sprintf("data/example_input_batch_%s.bin", modelType)
 
 	// Adjust library path based on OS if needed. Defaulting to Linux naming.
 	libPath := os.Getenv("ONNXRUNTIME_LIB_PATH")
@@ -45,7 +46,8 @@ func main() {
 	}
 	defer ort.Destroy()
 
-	inputData, err := readBin(inputPath)
+	// Single inference
+	inputData, err := readBin(singleInputPath)
 	if err != nil {
 		panic(err)
 	}
@@ -100,4 +102,64 @@ func main() {
 	sort.Float64s(latencies)
 	p95 := latencies[int(float64(len(latencies))*0.95)]
 	fmt.Printf("Single inference P95 (Go ONNX): %.4f ms\n", p95)
+
+	// Batch inference
+	batchInputData, err := readBin(batchInputPath)
+	if err != nil {
+		panic(err)
+	}
+
+	var batchInputShape ort.Shape
+	if modelType == "simple" {
+		batchInputShape = ort.Shape{20, 128}
+	} else if modelType == "rnn" {
+		batchInputShape = ort.Shape{20, 10, 32}
+	} else if modelType == "transformer" {
+		batchInputShape = ort.Shape{20, 16, 64}
+	}
+
+	batchInputTensor, err := ort.NewTensor(batchInputShape, batchInputData)
+	if err != nil {
+		panic(err)
+	}
+	defer batchInputTensor.Destroy()
+
+	batchOutputData := make([]float32, 20*10)
+	batchOutputShape := ort.Shape{20, 10}
+	batchOutputTensor, err := ort.NewTensor(batchOutputShape, batchOutputData)
+	if err != nil {
+		panic(err)
+	}
+	defer batchOutputTensor.Destroy()
+
+	batchSession, err := ort.NewAdvancedSession(modelPath,
+		[]string{"x"}, []string{"output"},
+		[]ort.ArbitraryTensor{batchInputTensor}, []ort.ArbitraryTensor{batchOutputTensor}, nil)
+	if err != nil {
+		panic(err)
+	}
+	defer batchSession.Destroy()
+
+	// Warmup
+	err = batchSession.Run()
+	if err != nil {
+		panic(err)
+	}
+
+	var batchLatencies []float64
+	for i := 0; i < 3; i++ {
+		start := time.Now()
+		err = batchSession.Run()
+		if err != nil {
+			panic(err)
+		}
+		batchLatencies = append(batchLatencies, float64(time.Since(start).Nanoseconds())/1e6)
+	}
+
+	var sumBatch float64
+	for _, l := range batchLatencies {
+		sumBatch += l
+	}
+	meanBatch := sumBatch / float64(len(batchLatencies))
+	fmt.Printf("Batch inference mean (Go ONNX): %.4f ms\n", meanBatch)
 }
