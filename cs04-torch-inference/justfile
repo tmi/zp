@@ -2,3 +2,30 @@ val:
 	uv run ruff check .
 	uv run ty check .
 	uv run pytest
+
+initialize_model model:
+	uv run python -m baseline.initialize_model {{model}} --onnx --executorch
+
+eval_torch model device="cpu":
+	uv run python -m baseline.inference_torch {{model}} --device {{device}}
+
+eval_onnx model provider="cpu":
+	uv run python -m onnx_bench.python.inference_onnx {{model}} --provider {{provider}}
+
+eval_executorch model backend="portable":
+	uv run python -m executorch_bench.python.inference_executorch {{model}} --backend {{backend}}
+
+build_onnx_cpp:
+	cd onnx_bench/cpp && mkdir -p build && cd build && cmake .. && make
+
+build_onnx_rust:
+	cd onnx_bench/rust && cargo build --release
+
+build_onnx_go:
+	cd onnx_bench/golang && go build -o onnx_bench_go
+
+build_executorch_cpp:
+	cd executorch_bench/cpp && mkdir -p build && cd build && cmake .. && make
+
+build_executorch_rust:
+	cd executorch_bench/rust && cargo build --release
