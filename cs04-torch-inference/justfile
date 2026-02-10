@@ -21,6 +21,9 @@ build_onnx_cpp:
 build_onnx_rust:
 	cd onnx_bench/rust && cargo build --release
 
+eval_onnx_rust model device="cpu":
+	cd onnx_bench/rust && cargo run --release -- {{model}} --device {{device}}
+
 build_onnx_go:
 	cd onnx_bench/golang && go build -o onnx_bench_go
 

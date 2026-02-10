@@ -1,9 +1,24 @@
 use ort::session::Session;
 use ort::value::Value;
 use std::time::Instant;
-use std::env;
 use std::fs::File;
 use std::io::Read;
+use clap::Parser;
+
+#[derive(Parser)]
+#[command(author, version, about, long_about = None)]
+struct Args {
+    /// Model type (simple, rnn, transformer)
+    model_type: String,
+
+    /// Device/Provider (cpu, cuda, coreml, xnnpack)
+    #[arg(long, default_value = "cpu")]
+    device: String,
+
+    /// Enable verbose logging
+    #[arg(long)]
+    debug: bool,
+}
 
 fn read_bin(path: &str) -> Vec<f32> {
     let mut file = File::open(path).expect("Could not open file");
@@ -17,21 +32,46 @@ fn read_bin(path: &str) -> Vec<f32> {
 }
 
 fn main() -> ort::Result<()> {
-    let args: Vec<String> = env::args().collect();
-    if args.len() < 2 {
-        eprintln!("Usage: {} <model_type>", args[0]);
-        return Ok(());
-    }
-    let model_type = &args[1];
-    let model_path = format!("data/{}.onnx", model_type);
-    let single_input_path = format!("data/example_input_single_{}.bin", model_type);
-    let batch_input_path = format!("data/example_input_batch_{}.bin", model_type);
+    let args = Args::parse();
 
-    let mut session = Session::builder()?.commit_from_file(model_path)?;
+    if args.debug {
+        let _ = ort::init()
+            .with_name("onnx_bench")
+            .commit();
+    }
+
+    let model_path = format!("data/{}.onnx", args.model_type);
+    let single_input_path = format!("data/example_input_single_{}.bin", args.model_type);
+    let batch_input_path = format!("data/example_input_batch_{}.bin", args.model_type);
+
+    let mut builder = Session::builder()?;
+
+    // Set optimization level and threads
+    builder = builder
+        .with_optimization_level(ort::session::builder::GraphOptimizationLevel::Level3)?
+        .with_intra_threads(4)?;
+
+    // Set execution provider
+    match args.device.as_str() {
+        "cuda" => {
+            builder = builder.with_execution_providers([ort::execution_providers::CUDAExecutionProvider::default().build()])?;
+        }
+        "coreml" => {
+            builder = builder.with_execution_providers([ort::execution_providers::CoreMLExecutionProvider::default().build()])?;
+        }
+        "xnnpack" => {
+            builder = builder.with_execution_providers([ort::execution_providers::XNNPACKExecutionProvider::default().build()])?;
+        }
+        _ => {
+            builder = builder.with_execution_providers([ort::execution_providers::CPUExecutionProvider::default().build()])?;
+        }
+    }
+
+    let mut session = builder.commit_from_file(model_path)?;
 
     // Single inference
     let single_input_data = read_bin(&single_input_path);
-    let single_input_shape: Vec<usize> = match model_type.as_str() {
+    let single_input_shape: Vec<usize> = match args.model_type.as_str() {
         "simple" => vec![1, 128],
         "rnn" => vec![1, 10, 32],
         "transformer" => vec![1, 16, 64],
@@ -56,7 +96,7 @@ fn main() -> ort::Result<()> {
 
     // Batch inference
     let batch_input_data = read_bin(&batch_input_path);
-    let batch_input_shape: Vec<usize> = match model_type.as_str() {
+    let batch_input_shape: Vec<usize> = match args.model_type.as_str() {
         "simple" => vec![20, 128],
         "rnn" => vec![20, 10, 32],
         "transformer" => vec![20, 16, 64],
