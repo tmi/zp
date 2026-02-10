@@ -1,4 +1,4 @@
-use executorch::Program;
+use executorch::Module;
 use std::time::Instant;
 use std::env;
 use std::fs::File;
@@ -22,21 +22,17 @@ fn main() {
     }
     let model_type = &args[1];
     let model_path = format!("data/{}_single.pte", model_type);
-    let input_path = format!("data/example_input_single_{}.bin", model_type);
+    let _input_path = format!("data/example_input_single_{}.bin", model_type);
 
-    let mut program = Program::from_file(&model_path).expect("Failed to load program");
-    let mut method = program.load_method("forward").expect("Failed to load method");
-
-    let _input_data = read_bin(&input_path);
-    // method.set_input(0, &input_data).expect("Failed to set input");
+    let mut module = Module::from_file(&model_path).expect("Failed to load module");
 
     // Warmup
-    method.execute().expect("Warmup execution failed");
+    module.forward(&[]).expect("Warmup execution failed");
 
     let mut latencies = Vec::new();
     for _ in 0..20 {
         let start = Instant::now();
-        method.execute().expect("Execution failed");
+        module.forward(&[]).expect("Execution failed");
         latencies.push(start.elapsed().as_secs_f64() * 1000.0);
     }
 

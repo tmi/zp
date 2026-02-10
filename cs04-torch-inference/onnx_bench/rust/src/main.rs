@@ -1,5 +1,5 @@
-use ort::{Session, Value, MemoryInfo, AllocatorType, MemoryType};
-use ndarray::Array;
+use ort::session::Session;
+use ort::value::Value;
 use std::time::Instant;
 use std::env;
 use std::fs::File;
@@ -26,25 +26,26 @@ fn main() -> ort::Result<()> {
     let model_path = format!("data/{}.onnx", model_type);
     let input_path = format!("data/example_input_single_{}.bin", model_type);
 
-    let session = Session::builder()?.with_model_from_file(model_path)?;
+    let mut session = Session::builder()?.commit_from_file(model_path)?;
 
     let input_data = read_bin(&input_path);
-    let input_shape = match model_type.as_str() {
+    let input_shape: Vec<usize> = match model_type.as_str() {
         "simple" => vec![1, 128],
         "rnn" => vec![1, 10, 32],
         "transformer" => vec![1, 16, 64],
         _ => panic!("Unknown model type"),
     };
 
-    let array = Array::from_shape_vec(input_shape, input_data).unwrap();
+    // Use (shape, data) tuple which is supported by ort as OwnedTensorArrayData
+    let input_tensor = Value::from_array((input_shape, input_data))?;
 
     // Warmup
-    let _ = session.run(ort::inputs![array.clone()]?)?;
+    let _ = session.run(ort::inputs![input_tensor.view()])?;
 
     let mut latencies = Vec::new();
     for _ in 0..20 {
         let start = Instant::now();
-        let _ = session.run(ort::inputs![array.clone()]?)?;
+        let _ = session.run(ort::inputs![input_tensor.view()])?;
         latencies.push(start.elapsed().as_secs_f64() * 1000.0);
     }
 
