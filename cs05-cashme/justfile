@@ -1,0 +1,19 @@
+test-py:
+    uv run ruff check .
+    uv run pytest
+
+test-rs:
+    cargo check
+    cargo test
+
+test: test-py test-rs
+
+build:
+    uv run maturin build
+
+val:
+    uv run ruff check .
+    uv run ty check
+    cargo check
+    cargo test
+    uv run pytest
