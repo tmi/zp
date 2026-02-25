@@ -8,6 +8,7 @@ test-rs:
     cargo test
 
 build:
+    # TODO do we need to set PYO3_PYTHON here?
     cargo build --release --bin cashme-cli
     cp target/release/cashme-cli python/cashme/
     uv run maturin build --release
