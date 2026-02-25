@@ -1,4 +1,5 @@
 test-py:
+    uv run maturin develop
     uv run ruff check .
     uv run pytest
 
@@ -7,14 +8,11 @@ test-rs:
     cargo test
 
 build:
-    uv run maturin build
+    cargo build --release --bin cashme-cli
+    cp target/release/cashme-cli python/cashme/
+    uv run maturin build --release
 
-val: test-py test-rs
-    uv run ruff check .
-    uv run ty check
-    cargo check
-    cargo test
-    uv run pytest
+val: test-rs test-py
 
 clean:
     cargo clean

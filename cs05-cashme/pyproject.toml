@@ -15,6 +15,7 @@ cashme = "cashme:main"
 features = ["pyo3/extension-module"]
 python-source = "python"
 module-name = "cashme._cashme"
+include = ["python/cashme/cashme-cli"]
 
 [dependency-groups]
 dev = [
