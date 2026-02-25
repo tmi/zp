@@ -1,0 +1,7 @@
+/target
+/.venv
+/__pycache__
+*.so
+*.whl
+*.egg-info
+.python-version
