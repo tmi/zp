@@ -5,3 +5,4 @@
 *.whl
 *.egg-info
 .python-version
+python/cashme/cashme-cli
