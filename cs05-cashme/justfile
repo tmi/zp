@@ -1,4 +1,5 @@
 test-py:
+    # TODO this implicitly depends on rust build having happened -- fix!
     uv run maturin develop
     uv run ruff check .
     uv run pytest
@@ -8,8 +9,7 @@ test-rs:
     cargo test
 
 build:
-    # TODO do we need to set PYO3_PYTHON here?
-    cargo build --release --bin cashme-cli
+    cargo build --release -p cashme-cli
     cp target/release/cashme-cli python/cashme/
     uv run maturin build --release
 
