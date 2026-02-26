@@ -62,8 +62,22 @@ checksum = "c08606f8c3cbf4ce6ec8e28fb0014a2c086708fe954eaa885384a6165172e7e8"
 name = "cashme"
 version = "0.1.0"
 dependencies = [
- "clap",
+ "cashme-core",
  "pyo3",
+]
+
+[[package]]
+name = "cashme-cli"
+version = "0.1.0"
+dependencies = [
+ "cashme-core",
+ "clap",
+]
+
+[[package]]
+name = "cashme-core"
+version = "0.1.0"
+dependencies = [
  "serde",
  "serde_json",
 ]

@@ -1,5 +1,5 @@
 use clap::Parser;
-use cashme::{Response};
+use cashme_core::{Response};
 
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]
