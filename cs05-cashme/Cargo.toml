@@ -12,7 +12,7 @@ name = "cashme-cli"
 path = "src/main.rs"
 
 [dependencies]
-# TODO we disable extension-module to get it built, but that links the cli app to python which we dont want -- we need to separate the lib in two
+# TODO we disable extension-module so that `cargo build` works on mac (otherwise it complaints about symbol issues). But that links the cli app to python on mac which is undesirable!
 # pyo3 = { version = "0.23", features = ["extension-module"] }
 pyo3 = { version = "0.23" }
 clap = { version = "4.0", features = ["derive"] }
