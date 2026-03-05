@@ -6,7 +6,8 @@
 
 # Projects
 * Each subfolder (cs00-something, cs01-else, ...) is a project on its own. Never work or change multiple projects at once.
-* Each project contains a readme.md (which is intended as instructions for contributors, including you), a spec.md (which is what led to its conception) and a summary.md (the results and takeaway).
+* Each project contains a readme.md (which is intended as instructions for contributors, including you)  and a summary.md (the results and takeaway, intended for downstream users). When you edit a project, consider updating both. Readme can be detailed but not overly verbose, Summary only very brief.
+* Each project contains `spec/` directory which is a history of individual change requests -- never modify these, only read them to understand project history if needed.
 * Each project contains a justfile (for https://github.com/casey/just) with at least `val` recipe, which runs linting and type checking and tests.
 
 # Python
