@@ -17,7 +17,8 @@ impl Logger {
         let log_dir = PathBuf::from("/tmp/agenticSessions");
         fs::create_dir_all(&log_dir)?;
 
-        let log_file_name = format!("{}.{}.log", session_id, agent_id);
+        let timestamp = Local::now().format("%Y-%m-%dT%H:%M").to_string();
+        let log_file_name = format!("{}.{}.{}.log", timestamp, session_id, agent_id);
         let log_path = log_dir.join(log_file_name);
 
         Ok(Self {
