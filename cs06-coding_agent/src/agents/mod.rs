@@ -10,8 +10,6 @@ pub trait Agent {
 pub struct MainAgent {
     model: Box<dyn Model>,
     tools: Vec<Box<dyn Tool>>,
-    #[allow(dead_code)]
-    system_prompt: String,
     history: std::sync::Arc<tokio::sync::Mutex<Vec<Message>>>,
 }
 
@@ -20,7 +18,7 @@ impl MainAgent {
         let system_prompt = "You are a smart assistant. You have tools at your disposal. Be very brief in general".to_string();
         let history = vec![Message {
             role: Role::System,
-            content: system_prompt.clone(),
+            content: system_prompt,
             tool_calls: None,
             tool_call_id: None,
         }];
@@ -28,7 +26,6 @@ impl MainAgent {
         Self {
             model,
             tools,
-            system_prompt,
             history: std::sync::Arc::new(tokio::sync::Mutex::new(history)),
         }
     }

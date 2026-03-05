@@ -16,5 +16,5 @@ cargo run -- --model ollama:llama3
 
 ## Shortcuts
 - `Enter`: Submit input
-- `Esc`: Exit
+- `Esc`, `Ctrl-D`: Exit
 - `Backspace`: Delete character
