@@ -15,8 +15,13 @@ pub enum Role {
 pub struct ToolCall {
     pub id: Option<String>,
     #[serde(rename = "type")]
+    #[serde(default = "default_tool_call_type")]
     pub call_type: String,
     pub function: FunctionCall,
+}
+
+fn default_tool_call_type() -> String {
+    "function".to_string()
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -146,6 +151,14 @@ impl Model for OllamaModel {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn test_tool_call_deserialization_no_type() {
+        let body = r#"{"function":{"name":"read","arguments":{"filename":"summary.md"}}}"#;
+        let res: ToolCall = serde_json::from_str(body).unwrap();
+        assert_eq!(res.call_type, "function");
+        assert_eq!(res.function.name, "read");
+    }
 
     #[test]
     fn test_ollama_response_deserialization() {
