@@ -109,6 +109,9 @@ async fn main() -> anyhow::Result<()> {
                     }
                 }
                 KeyCode::Char(c) => {
+                    if c == 'd' && key.modifiers.contains(event::KeyModifiers::CONTROL) {
+                        break;
+                    }
                     input.push(c);
                 }
                 KeyCode::Backspace => {
