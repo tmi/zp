@@ -17,18 +17,27 @@ eval_executorch model backend="portable":
 
 build_onnx_cpp:
 	cd onnx_bench/cpp && mkdir -p build && cd build && cmake .. && make
+	# issue: no eval action
+	# issue: onnxruntime not added to cmake prefix dir
 
 build_onnx_rust:
 	cd onnx_bench/rust && cargo build --release
 
 eval_onnx_rust model device="cpu":
+	# issue1 -- hardcodes the data/{model}.onnx relatively, thus works only via `./onnx_bench/rust/target/release/onnx_bench_rust simple --device cpu
+	# issue2 -- the rpath is incorrect, needs to be executed with LD_LIBRARY_PATH pointing to the onnx_bench/rust/target/release. Should have $ORIGIN there
+	# issue3 -- does not support xnnpack provider
 	cd onnx_bench/rust && cargo run --release -- {{model}} --device {{device}}
 
 build_onnx_go:
 	cd onnx_bench/golang && go build -o onnx_bench_go
+	# issue: no eval action
+	# issue: fails to download toolchain
 
 build_executorch_cpp:
 	cd executorch_bench/cpp && mkdir -p build && cd build && cmake .. && make
+	# issue: executorch not added to cmake prefix dir
 
 build_executorch_rust:
 	cd executorch_bench/rust && cargo build --release
+    # issue: could not find native static library `executorch`, perhaps an -L flag is missing?
