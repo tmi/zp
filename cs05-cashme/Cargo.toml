@@ -1,0 +1,19 @@
+[package]
+name = "cashme"
+version = "0.1.0"
+edition = "2021"
+
+[workspace]
+members = [
+    ".",
+    "cashme-core",
+    "cashme-cli",
+]
+
+[lib]
+name = "cashme"
+crate-type = ["cdylib"]
+
+[dependencies]
+cashme-core = { path = "cashme-core" }
+pyo3 = { version = "0.23", features = ["extension-module"] }
