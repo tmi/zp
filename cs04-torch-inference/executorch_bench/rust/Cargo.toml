@@ -1,0 +1,8 @@
+[package]
+name = "executorch_bench_rust"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+executorch = "0.8.1"
+ndarray = "0.15"
