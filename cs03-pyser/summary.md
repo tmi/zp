@@ -1,3 +1,5 @@
+*Status*: Complete
+
 # Summary
 
 This project compared various serialization methods in Python using two dataclasses: `Small` and `Medium`.

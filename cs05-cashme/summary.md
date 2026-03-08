@@ -1,4 +1,6 @@
-# Project Summary - cs05-cashme
+*Status*: Incubating
+
+# Summary
 
 Implementation of a Rust library and app with a Python wheel interface using `maturin` and `pyo3`.
 

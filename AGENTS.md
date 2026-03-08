@@ -7,8 +7,10 @@
 # Projects
 * Each subfolder (cs00-something, cs01-else, ...) is a project on its own. Never work or change multiple projects at once.
 * Each project contains a readme.md (which is intended as instructions for contributors, including you)  and a summary.md (the results and takeaway, intended for downstream users). When you edit a project, consider updating both. Readme can be detailed but not overly verbose, Summary only very brief.
+  * Summary starts with a line `*Status*: Completed/Incubating` -- when creating a new summary, always put there Incubating, otherwise don't change that line.
 * Each project contains `spec/` directory which is a history of individual change requests -- never modify these, only read them to understand project history if needed.
 * Each project contains a justfile (for https://github.com/casey/just) with at least `val` recipe, which runs linting and type checking and tests.
+* In the root of the repository there is a `readme.md`, which contains one paragraph-sized section for each project. Update this when creating a new project or substantially changing an existing one.
 
 # Python
 * To manage projects and dependencies, use `uv`, for example, `uv init` or `uv run pytest`. Use `dev` dependency group for tools like pytest, ruff and ty.
