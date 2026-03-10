@@ -53,7 +53,7 @@ impl Agent for MainAgent {
                     let tool = self.tools.iter().find(|t| t.name() == tool_call.function.name)
                         .ok_or_else(|| anyhow::anyhow!("Tool not found: {}", tool_call.function.name))?;
 
-                    let result = tool.run(&tool_call.function.arguments)?;
+                    let result = tool.run(&tool_call.function.arguments).await?;
 
                     history.push(Message {
                         role: Role::Tool,
@@ -102,11 +102,12 @@ mod tests {
     }
 
     struct MockTool;
+    #[async_trait]
     impl Tool for MockTool {
         fn name(&self) -> &str { "mock_tool" }
         fn description(&self) -> &str { "A mock tool" }
         fn definition(&self) -> serde_json::Value { json!({}) }
-        fn run(&self, _args: &serde_json::Value) -> anyhow::Result<String> { Ok("tool result".to_string()) }
+        async fn run(&self, _args: &serde_json::Value) -> anyhow::Result<String> { Ok("tool result".to_string()) }
     }
 
     #[tokio::test]
