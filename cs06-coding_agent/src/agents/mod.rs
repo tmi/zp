@@ -1,5 +1,6 @@
 use crate::models::{Model, Message, Role};
 use crate::tools::Tool;
+use crate::logging::Logger;
 use async_trait::async_trait;
 
 #[async_trait]
@@ -11,10 +12,11 @@ pub struct MainAgent {
     model: Box<dyn Model>,
     tools: Vec<Box<dyn Tool>>,
     history: std::sync::Arc<tokio::sync::Mutex<Vec<Message>>>,
+    logger: Logger,
 }
 
 impl MainAgent {
-    pub fn new(model: Box<dyn Model>, tools: Vec<Box<dyn Tool>>) -> Self {
+    pub fn new(model: Box<dyn Model>, tools: Vec<Box<dyn Tool>>, logger: Logger) -> Self {
         let system_prompt = "You are a smart assistant. You have tools at your disposal. Be very brief in general".to_string();
         let history = vec![Message {
             role: Role::System,
@@ -27,6 +29,7 @@ impl MainAgent {
             model,
             tools,
             history: std::sync::Arc::new(tokio::sync::Mutex::new(history)),
+            logger,
         }
     }
 }
@@ -53,7 +56,9 @@ impl Agent for MainAgent {
                     let tool = self.tools.iter().find(|t| t.name() == tool_call.function.name)
                         .ok_or_else(|| anyhow::anyhow!("Tool not found: {}", tool_call.function.name))?;
 
+                    self.logger.log("TOOL_CALL", &format!("{}: {}", tool_call.function.name, tool_call.function.arguments))?;
                     let result = tool.run(&tool_call.function.arguments).await?;
+                    self.logger.log("TOOL_RESPONSE", &format!("{}: {}", tool_call.function.name, result))?;
 
                     history.push(Message {
                         role: Role::Tool,
@@ -128,7 +133,8 @@ mod tests {
             }
         ];
         let model = MockModel { responses: std::sync::Arc::new(tokio::sync::Mutex::new(responses)) };
-        let agent = MainAgent::new(Box::new(model), vec![Box::new(MockTool)]);
+        let logger = Logger::new("test").unwrap();
+        let agent = MainAgent::new(Box::new(model), vec![Box::new(MockTool)], logger);
 
         let result = agent.process("Call the tool").await.unwrap();
         assert_eq!(result, "Final answer");
