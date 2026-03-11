@@ -63,10 +63,10 @@ async fn main() -> anyhow::Result<()> {
                     env: std::collections::HashMap::new(),
                 }))
             } else {
-                None
+                return Err(anyhow::anyhow!("Invalid MCP argument: missing command after colon"));
             }
         } else {
-            None
+            return Err(anyhow::anyhow!("Invalid MCP argument: expected format name:\"command args\""));
         }
     } else {
         None
