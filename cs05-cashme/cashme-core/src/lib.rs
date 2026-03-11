@@ -1,5 +1,7 @@
 use serde::{Deserialize, Serialize};
 
+pub mod api;
+
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Request {
     pub size: u32,
