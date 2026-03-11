@@ -42,7 +42,7 @@ async fn main() -> anyhow::Result<()> {
     };
 
     let logger = Logger::new("main")?;
-    logger.log(&format!("Starting agent with model: {}", model_name))?;
+    logger.log("SYSTEM", &format!("Starting agent with model: {}", model_name))?;
 
     let file_config = if let Some(path) = args.json {
         let content = std::fs::read_to_string(path)?;
@@ -77,17 +77,17 @@ async fn main() -> anyhow::Result<()> {
     let mut tools: Vec<Box<dyn Tool>> = vec![Box::new(ReadTool)];
 
     for (name, server_config) in mcp_config.mcp_servers {
-        logger.log(&format!("Connecting to MCP server: {}", name))?;
-        let client = McpClient::new(&server_config).await?;
+        logger.log("SYSTEM", &format!("Connecting to MCP server: {}", name))?;
+        let client = McpClient::new(&server_config, logger.clone()).await?;
         let mcp_tools = client.list_tools().await?;
         for tool_info in mcp_tools {
-            logger.log(&format!("Registering tool: {}", tool_info.name))?;
+            logger.log("SYSTEM", &format!("Registering tool: {}", tool_info.name))?;
             tools.push(Box::new(McpTool::new(client.clone(), tool_info)));
         }
     }
 
     let model = Box::new(OllamaModel::new(model_name));
-    let agent = MainAgent::new(model, tools);
+    let agent = MainAgent::new(model, tools, logger.clone());
 
     // TUI setup
     enable_raw_mode()?;
@@ -127,7 +127,7 @@ async fn main() -> anyhow::Result<()> {
             match key.code {
                 KeyCode::Enter => {
                     let user_input = input.drain(..).collect::<String>();
-                    logger.log(&format!("User input: {}", user_input))?;
+                    logger.log("USER", &format!("{}", user_input))?;
 
                     output = String::from("Thinking...");
                     terminal.draw(|f| {
@@ -149,11 +149,11 @@ async fn main() -> anyhow::Result<()> {
                     match agent.process(&user_input).await {
                         Ok(res) => {
                             output = res.clone();
-                            logger.log(&format!("Agent output: {}", res))?;
+                            logger.log("ASSISTANT", &format!("{}", res))?;
                         }
                         Err(e) => {
                             output = format!("Error: {}", e);
-                            logger.log(&format!("Error: {}", e))?;
+                            logger.log("ERROR", &format!("{}", e))?;
                         }
                     }
                 }

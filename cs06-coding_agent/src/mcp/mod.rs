@@ -66,6 +66,7 @@ pub struct McpClient {
     #[allow(dead_code)]
     child: Child,
     message_tx: mpsc::Sender<Message>,
+    logger: crate::logging::Logger,
 }
 
 #[derive(Debug, Deserialize)]
@@ -96,7 +97,7 @@ struct CallToolContent {
 }
 
 impl McpClient {
-    pub async fn new(config: &McpServerConfig) -> Result<Arc<Self>> {
+    pub async fn new(config: &McpServerConfig, logger: crate::logging::Logger) -> Result<Arc<Self>> {
         let mut child = Command::new(&config.command)
             .args(&config.args)
             .envs(&config.env)
@@ -162,7 +163,7 @@ impl McpClient {
             }
         });
 
-        let client = Arc::new(Self { child, message_tx });
+        let client = Arc::new(Self { child, message_tx, logger });
 
         // Initialize handshake
         let params = json!({
@@ -213,21 +214,28 @@ impl McpClient {
         let id = uuid::Uuid::new_v4().to_string();
         let request = JsonRpcRequest {
             jsonrpc: "2.0".to_string(),
-            id: Value::String(id),
+            id: Value::String(id.clone()),
             method: method.to_string(),
-            params,
+            params: params.clone(),
         };
 
+        self.logger.log("MCP", &format!("Request {}: {} {}", id, method, params))?;
         self.message_tx.send(Message::Request(request, tx)).await.map_err(|_| anyhow!("Failed to send request"))?;
-        rx.await.map_err(|_| anyhow!("Failed to receive response"))?
+        let result = rx.await.map_err(|_| anyhow!("Failed to receive response"))?;
+        match &result {
+            Ok(res) => self.logger.log("MCP", &format!("Response {}: {}", id, res))?,
+            Err(e) => self.logger.log("MCP", &format!("Response {}: Error: {}", id, e))?,
+        }
+        result
     }
 
     async fn send_notification(&self, method: &str, params: Value) -> Result<()> {
         let notification = JsonRpcNotification {
             jsonrpc: "2.0".to_string(),
             method: method.to_string(),
-            params,
+            params: params.clone(),
         };
+        self.logger.log("MCP", &format!("Notification: {} {}", method, params))?;
         self.message_tx.send(Message::Notification(notification)).await.map_err(|_| anyhow!("Failed to send notification"))?;
         Ok(())
     }

@@ -6,7 +6,7 @@ A basic Rust-based autonomous coding agent with a TUI.
 - Minimalist TUI using `ratatui`
 - Ollama integration for LLM support
 - File reading tool
-- Session logging in `/tmp/agenticSessions/`
+- Session logging in `/tmp/agenticSessions/` (logs user inputs, assistant outputs, tool calls, and MCP interchange)
 
 ## Usage
 Run with:
