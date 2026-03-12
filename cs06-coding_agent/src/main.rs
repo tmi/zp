@@ -27,7 +27,7 @@ struct Args {
     #[arg(short, long)]
     json: Option<PathBuf>,
 
-    #[arg(short, long)]
+    #[arg(long, help = "MCP server configuration in the format name:\"command args\"")]
     mcp: Option<String>,
 }
 
@@ -119,7 +119,8 @@ async fn main() -> anyhow::Result<()> {
             f.render_widget(output_block, chunks[0]);
 
             let input_block = Paragraph::new(input.as_str())
-                .block(Block::default().title("Input").borders(Borders::ALL));
+                .block(Block::default().title("Input").borders(Borders::ALL))
+                .wrap(Wrap { trim: true });
             f.render_widget(input_block, chunks[1]);
         })?;
 
@@ -142,7 +143,8 @@ async fn main() -> anyhow::Result<()> {
                             .wrap(Wrap { trim: true });
                         f.render_widget(output_block, chunks[0]);
                         let input_block = Paragraph::new("")
-                            .block(Block::default().title("Input").borders(Borders::ALL));
+                            .block(Block::default().title("Input").borders(Borders::ALL))
+                            .wrap(Wrap { trim: true });
                         f.render_widget(input_block, chunks[1]);
                     })?;
 
