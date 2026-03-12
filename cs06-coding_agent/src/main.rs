@@ -21,7 +21,7 @@ use std::path::PathBuf;
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]
 struct Args {
-    #[arg(short, long, default_value = "ollama:llama3")]
+    #[arg(short, long, default_value = "ollama:qwen2.5")]
     model: String,
 
     #[arg(short, long)]
