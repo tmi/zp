@@ -4,6 +4,7 @@ use std::path::PathBuf;
 use uuid::Uuid;
 use chrono::Local;
 
+#[derive(Clone)]
 pub struct Logger {
     session_id: String,
     #[allow(dead_code)]
@@ -28,9 +29,9 @@ impl Logger {
         })
     }
 
-    pub fn log(&self, message: &str) -> anyhow::Result<()> {
+    pub fn log(&self, category: &str, message: &str) -> anyhow::Result<()> {
         let timestamp = Local::now().format("%Y-%m-%d %H:%M:%S");
-        let log_entry = format!("[{}] {}\n", timestamp, message);
+        let log_entry = format!("[{}] [{}] {}\n", timestamp, category, message);
 
         let mut file = OpenOptions::new()
             .create(true)
@@ -54,10 +55,10 @@ mod tests {
     #[test]
     fn test_logger_creation_and_logging() {
         let logger = Logger::new("test_agent").unwrap();
-        logger.log("test message").unwrap();
+        logger.log("TEST", "test message").unwrap();
 
         let content = fs::read_to_string(&logger.log_path).unwrap();
-        assert!(content.contains("test message"));
+        assert!(content.contains("[TEST] test message"));
 
         // Clean up
         let _ = fs::remove_file(logger.log_path);
