@@ -1,3 +1,6 @@
 val:
     cargo check
     cargo test
+
+install:
+    cargo install --path .
