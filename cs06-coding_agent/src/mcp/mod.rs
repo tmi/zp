@@ -235,7 +235,12 @@ impl McpClient {
         // Initialize handshake
         let params = json!({
             "protocolVersion": "2024-11-05",
-            "capabilities": {},
+            "capabilities": {
+                "roots": {
+                    "listChanged": true
+                },
+                "sampling": {}
+            },
             "clientInfo": {
                 "name": "coding-agent",
                 "version": "0.1.0"
