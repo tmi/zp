@@ -2,7 +2,10 @@ use clap::Parser;
 use coding_agent::models::OllamaModel;
 use coding_agent::agents::{Agent, MainAgent};
 use coding_agent::tools::{ReadTool, Tool};
-use coding_agent::mcp::{McpConfig, McpServerConfig, McpClient, McpTool, merge_mcp_configs};
+use coding_agent::mcp::{
+    McpConfig, McpServerConfig, McpClient, McpTool, merge_mcp_configs,
+    McpListResourcesTool, McpReadResourceTool, McpListPromptsTool, McpGetPromptTool
+};
 use coding_agent::logging::Logger;
 use ratatui::{
     backend::CrosstermBackend,
@@ -84,6 +87,14 @@ async fn main() -> anyhow::Result<()> {
             logger.log("SYSTEM", &format!("Registering tool: {}", tool_info.name))?;
             tools.push(Box::new(McpTool::new(client.clone(), tool_info)));
         }
+
+        // Register resource tools
+        tools.push(Box::new(McpListResourcesTool::new(client.clone(), &name)));
+        tools.push(Box::new(McpReadResourceTool::new(client.clone(), &name)));
+
+        // Register prompt tools
+        tools.push(Box::new(McpListPromptsTool::new(client.clone(), &name)));
+        tools.push(Box::new(McpGetPromptTool::new(client.clone(), &name)));
     }
 
     let model = Box::new(OllamaModel::new(model_name));
