@@ -88,6 +88,16 @@ async fn main() -> anyhow::Result<()> {
             tools.push(Box::new(McpTool::new(client.clone(), tool_info)));
         }
 
+        let mcp_resources = client.list_resources().await?;
+        for resource_info in mcp_resources {
+            logger.log("SYSTEM", &format!("Discovered resource: {}", resource_info.name))?;
+        }
+
+        let mcp_prompts = client.list_prompts().await?;
+        for prompt_info in mcp_prompts {
+            logger.log("SYSTEM", &format!("Discovered prompt: {}", prompt_info.name))?;
+        }
+
         // Register resource tools
         tools.push(Box::new(McpListResourcesTool::new(client.clone(), &name)));
         tools.push(Box::new(McpReadResourceTool::new(client.clone(), &name)));
