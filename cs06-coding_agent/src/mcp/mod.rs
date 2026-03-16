@@ -96,6 +96,73 @@ struct CallToolContent {
     pub text: Option<String>,
 }
 
+#[derive(Debug, Deserialize)]
+pub struct McpResourceInfo {
+    pub uri: String,
+    pub name: String,
+    pub description: Option<String>,
+    #[serde(rename = "mimeType")]
+    pub mime_type: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
+struct ListResourcesResult {
+    pub resources: Vec<McpResourceInfo>,
+}
+
+#[derive(Debug, Deserialize)]
+struct ReadResourceResult {
+    pub contents: Vec<McpResourceContent>,
+}
+
+#[derive(Debug, Deserialize, Clone)]
+pub struct McpResourceContent {
+    pub uri: String,
+    #[serde(rename = "mimeType")]
+    pub mime_type: Option<String>,
+    pub text: Option<String>,
+    pub blob: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct McpPromptInfo {
+    pub name: String,
+    pub description: Option<String>,
+    pub arguments: Option<Vec<McpPromptArgument>>,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct McpPromptArgument {
+    pub name: String,
+    pub description: Option<String>,
+    pub required: Option<bool>,
+}
+
+#[derive(Debug, Deserialize)]
+struct ListPromptsResult {
+    pub prompts: Vec<McpPromptInfo>,
+}
+
+#[derive(Debug, Deserialize)]
+struct GetPromptResult {
+    pub description: Option<String>,
+    pub messages: Vec<McpPromptMessage>,
+}
+
+#[derive(Debug, Deserialize)]
+struct McpPromptMessage {
+    pub role: String,
+    pub content: McpPromptContent,
+}
+
+#[derive(Debug, Deserialize)]
+struct McpPromptContent {
+    #[serde(rename = "type")]
+    pub content_type: String,
+    pub text: Option<String>,
+    pub resource: Option<McpResourceContent>,
+}
+
 impl McpClient {
     pub async fn new(config: &McpServerConfig, logger: crate::logging::Logger) -> Result<Arc<Self>> {
         let mut child = Command::new(&config.command)
@@ -168,7 +235,12 @@ impl McpClient {
         // Initialize handshake
         let params = json!({
             "protocolVersion": "2024-11-05",
-            "capabilities": {},
+            "capabilities": {
+                "roots": {
+                    "listChanged": true
+                },
+                "sampling": {}
+            },
             "clientInfo": {
                 "name": "coding-agent",
                 "version": "0.1.0"
@@ -204,6 +276,45 @@ impl McpClient {
 
         let text = call_tool_result.content.iter()
             .filter_map(|c| if c.content_type == "text" { c.text.clone() } else { None })
+            .collect::<Vec<_>>()
+            .join("\n");
+        Ok(text)
+    }
+
+    pub async fn list_resources(&self) -> Result<Vec<McpResourceInfo>> {
+        let result = self.send_request("resources/list", json!({})).await?;
+        let list_resources_result: ListResourcesResult = serde_json::from_value(result)?;
+        Ok(list_resources_result.resources)
+    }
+
+    pub async fn read_resource(&self, uri: &str) -> Result<String> {
+        let params = json!({
+            "uri": uri
+        });
+        let result = self.send_request("resources/read", params).await?;
+        let read_resource_result: ReadResourceResult = serde_json::from_value(result)?;
+        let text = read_resource_result.contents.iter()
+            .filter_map(|c| c.text.clone())
+            .collect::<Vec<_>>()
+            .join("\n");
+        Ok(text)
+    }
+
+    pub async fn list_prompts(&self) -> Result<Vec<McpPromptInfo>> {
+        let result = self.send_request("prompts/list", json!({})).await?;
+        let list_prompts_result: ListPromptsResult = serde_json::from_value(result)?;
+        Ok(list_prompts_result.prompts)
+    }
+
+    pub async fn get_prompt(&self, name: &str, arguments: Option<Value>) -> Result<String> {
+        let params = json!({
+            "name": name,
+            "arguments": arguments.unwrap_or(json!({}))
+        });
+        let result = self.send_request("prompts/get", params).await?;
+        let get_prompt_result: GetPromptResult = serde_json::from_value(result)?;
+        let text = get_prompt_result.messages.iter()
+            .map(|m| format!("{}: {}", m.role, m.content.text.as_deref().unwrap_or("")))
             .collect::<Vec<_>>()
             .join("\n");
         Ok(text)
@@ -275,5 +386,194 @@ impl Tool for McpTool {
 
     async fn run(&self, args: &Value) -> Result<String> {
         self.client.call_tool(self.name(), args.clone()).await
+    }
+}
+
+pub struct McpListResourcesTool {
+    client: Arc<McpClient>,
+    name: String,
+}
+
+impl McpListResourcesTool {
+    pub fn new(client: Arc<McpClient>, server_name: &str) -> Self {
+        Self { client, name: format!("mcp_{}_list_resources", server_name) }
+    }
+}
+
+#[async_trait]
+impl Tool for McpListResourcesTool {
+    fn name(&self) -> &str {
+        &self.name
+    }
+
+    fn description(&self) -> &str {
+        "Lists available resources from the MCP server."
+    }
+
+    fn definition(&self) -> Value {
+        json!({
+            "type": "function",
+            "function": {
+                "name": self.name(),
+                "description": self.description(),
+                "parameters": {
+                    "type": "object",
+                    "properties": {}
+                }
+            }
+        })
+    }
+
+    async fn run(&self, _args: &Value) -> Result<String> {
+        let resources = self.client.list_resources().await?;
+        let mut res = String::new();
+        for r in resources {
+            res.push_str(&format!("{}: {} ({})\n", r.name, r.uri, r.description.as_deref().unwrap_or("No description")));
+        }
+        Ok(res)
+    }
+}
+
+pub struct McpReadResourceTool {
+    client: Arc<McpClient>,
+    name: String,
+}
+
+impl McpReadResourceTool {
+    pub fn new(client: Arc<McpClient>, server_name: &str) -> Self {
+        Self { client, name: format!("mcp_{}_read_resource", server_name) }
+    }
+}
+
+#[async_trait]
+impl Tool for McpReadResourceTool {
+    fn name(&self) -> &str {
+        &self.name
+    }
+
+    fn description(&self) -> &str {
+        "Reads a resource from the MCP server given its URI."
+    }
+
+    fn definition(&self) -> Value {
+        json!({
+            "type": "function",
+            "function": {
+                "name": self.name(),
+                "description": self.description(),
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "uri": {
+                            "type": "string",
+                            "description": "The URI of the resource to read."
+                        }
+                    },
+                    "required": ["uri"]
+                }
+            }
+        })
+    }
+
+    async fn run(&self, args: &Value) -> Result<String> {
+        let uri = args["uri"].as_str().ok_or_else(|| anyhow!("Missing 'uri' argument"))?;
+        self.client.read_resource(uri).await
+    }
+}
+
+pub struct McpListPromptsTool {
+    client: Arc<McpClient>,
+    name: String,
+}
+
+impl McpListPromptsTool {
+    pub fn new(client: Arc<McpClient>, server_name: &str) -> Self {
+        Self { client, name: format!("mcp_{}_list_prompts", server_name) }
+    }
+}
+
+#[async_trait]
+impl Tool for McpListPromptsTool {
+    fn name(&self) -> &str {
+        &self.name
+    }
+
+    fn description(&self) -> &str {
+        "Lists available prompts from the MCP server."
+    }
+
+    fn definition(&self) -> Value {
+        json!({
+            "type": "function",
+            "function": {
+                "name": self.name(),
+                "description": self.description(),
+                "parameters": {
+                    "type": "object",
+                    "properties": {}
+                }
+            }
+        })
+    }
+
+    async fn run(&self, _args: &Value) -> Result<String> {
+        let prompts = self.client.list_prompts().await?;
+        let mut res = String::new();
+        for p in prompts {
+            res.push_str(&format!("{}: {}\n", p.name, p.description.as_deref().unwrap_or("No description")));
+        }
+        Ok(res)
+    }
+}
+
+pub struct McpGetPromptTool {
+    client: Arc<McpClient>,
+    name: String,
+}
+
+impl McpGetPromptTool {
+    pub fn new(client: Arc<McpClient>, server_name: &str) -> Self {
+        Self { client, name: format!("mcp_{}_get_prompt", server_name) }
+    }
+}
+
+#[async_trait]
+impl Tool for McpGetPromptTool {
+    fn name(&self) -> &str {
+        &self.name
+    }
+
+    fn description(&self) -> &str {
+        "Gets a prompt from the MCP server."
+    }
+
+    fn definition(&self) -> Value {
+        json!({
+            "type": "function",
+            "function": {
+                "name": self.name(),
+                "description": self.description(),
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "name": {
+                            "type": "string",
+                            "description": "The name of the prompt to get."
+                        },
+                        "arguments": {
+                            "type": "object",
+                            "description": "Arguments for the prompt."
+                        }
+                    },
+                    "required": ["name"]
+                }
+            }
+        })
+    }
+
+    async fn run(&self, args: &Value) -> Result<String> {
+        let name = args["name"].as_str().ok_or_else(|| anyhow!("Missing 'name' argument"))?;
+        let arguments = args.get("arguments").cloned();
+        self.client.get_prompt(name, arguments).await
     }
 }
