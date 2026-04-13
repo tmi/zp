@@ -24,18 +24,19 @@ def test_resolve_split():
 
 def test_resolve_math():
     assert resolve_expression("${42 ** 10}", {}) == "17080198121677824"
-    # assert resolve_expression("${1e10}", {}) == "10000000000.0" # My rust impl might output 10000000000
 
 def test_resolve_coercion():
-    # strings are used as-is; the caller should coerce if needed
-    # Wait, the spec says "20" for (2+3)*4
-    # My rust impl currently treats them as strings if they don't look like dates.
-    # If they are strings, "2"+"3" = "23", "23"*4 = error (unsupported binary op String * Int)
-    # Let me re-check the spec again.
-    # Actually, the spec example says:
-    # resolve_expression("${(a + b) * c}", {"a": "2", "b": "3", "c": "4"}) -> "20"
-    # This implies coercion TO Int/Float happened.
-    pass
+    assert resolve_expression("${(a + b) * c}", {"a": "2", "b": "3", "c": "4"}) == "20"
+
+def test_resolve_precedence():
+    assert resolve_expression("${1 + 2 * 3}", {}) == "7"
+    assert resolve_expression("${(1 + 2) * 3}", {}) == "9"
+
+def test_resolve_scientific():
+    assert resolve_expression("${42 * 1e3 + 7}", {}) == "42007.0"
+
+def test_resolve_chained_methods():
+    assert resolve_expression("${myString.split('_')[0].lower()}", {"myString": "Hello_World"}) == "hello"
 
 def test_extract_glyphs():
     assert extract_glyphs("${submitDatetime + timedelta(days=1)} and ${upper(myParam1)}") == {"submitDatetime", "myParam1"}

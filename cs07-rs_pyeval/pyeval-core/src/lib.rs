@@ -29,7 +29,13 @@ impl std::fmt::Display for Value {
         match self {
             Value::String(s) => write!(f, "{}", s),
             Value::Int(i) => write!(f, "{}", i),
-            Value::Float(fl) => write!(f, "{}", fl),
+            Value::Float(fl) => {
+                if fl.fract() == 0.0 && !fl.is_infinite() && !fl.is_nan() {
+                    write!(f, "{:.1}", fl)
+                } else {
+                    write!(f, "{}", fl)
+                }
+            }
             Value::DateTime(dt) => write!(f, "{}", dt.format("%Y-%m-%d %H:%M:%S")),
             Value::TimeDelta(d) => write!(f, "{:?}", d),
             Value::List(l) => write!(f, "{:?}", l),
@@ -61,6 +67,12 @@ pub fn coerce_value(s: &str) -> Value {
             return Value::DateTime(Utc.from_utc_datetime(&dt));
         }
     }
+    if let Ok(i) = s.parse::<i64>() {
+        return Value::Int(i);
+    }
+    if let Ok(f) = s.parse::<f64>() {
+        return Value::Float(f);
+    }
     Value::String(s.to_string())
 }
 
@@ -76,7 +88,7 @@ impl<'a> Evaluator<'a> {
     pub fn eval(&self, pair: Pair<Rule>) -> Result<Value, String> {
         match pair.as_rule() {
             Rule::expression => self.eval(pair.into_inner().next().unwrap()),
-            Rule::binary_expr => {
+            Rule::binary_expr | Rule::term | Rule::factor => {
                 let mut inner = pair.into_inner();
                 let mut result = self.eval(inner.next().unwrap())?;
                 while let Some(op_pair) = inner.next() {
@@ -86,7 +98,7 @@ impl<'a> Evaluator<'a> {
                 }
                 Ok(result)
             }
-            Rule::unary_expr => self.eval(pair.into_inner().next().unwrap()),
+            Rule::unary | Rule::add_op | Rule::mul_op | Rule::pow_op => self.eval(pair.into_inner().next().unwrap()),
             Rule::postfix_expr => {
                 let mut inner = pair.into_inner();
                 let mut result = self.eval(inner.next().unwrap())?;
@@ -214,15 +226,29 @@ impl<'a> Evaluator<'a> {
 
             (Value::Int(a), "-", Value::Int(b)) => Ok(Value::Int(a - b)),
             (Value::Float(a), "-", Value::Float(b)) => Ok(Value::Float(a - b)),
+            (Value::Int(a), "-", Value::Float(b)) => Ok(Value::Float(a as f64 - b)),
+            (Value::Float(a), "-", Value::Int(b)) => Ok(Value::Float(a - b as f64)),
 
             (Value::Int(a), "*", Value::Int(b)) => Ok(Value::Int(a * b)),
             (Value::Float(a), "*", Value::Float(b)) => Ok(Value::Float(a * b)),
+            (Value::Int(a), "*", Value::Float(b)) => Ok(Value::Float(a as f64 * b)),
+            (Value::Float(a), "*", Value::Int(b)) => Ok(Value::Float(a * b as f64)),
 
             (Value::Int(a), "/", Value::Int(b)) => Ok(Value::Float(a as f64 / b as f64)),
             (Value::Float(a), "/", Value::Float(b)) => Ok(Value::Float(a / b)),
+            (Value::Int(a), "/", Value::Float(b)) => Ok(Value::Float(a as f64 / b)),
+            (Value::Float(a), "/", Value::Int(b)) => Ok(Value::Float(a / b as f64)),
 
-            (Value::Int(a), "**", Value::Int(b)) => Ok(Value::Int(a.pow(b as u32))),
+            (Value::Int(a), "**", Value::Int(b)) => {
+                if b >= 0 {
+                    Ok(Value::Int(a.pow(b as u32)))
+                } else {
+                    Ok(Value::Float((a as f64).powf(b as f64)))
+                }
+            }
             (Value::Float(a), "**", Value::Float(b)) => Ok(Value::Float(a.powf(b))),
+            (Value::Int(a), "**", Value::Float(b)) => Ok(Value::Float((a as f64).powf(b))),
+            (Value::Float(a), "**", Value::Int(b)) => Ok(Value::Float(a.powf(b as f64))),
 
             (Value::Int(a), "//", Value::Int(b)) => Ok(Value::Int(a / b)),
 
@@ -276,6 +302,8 @@ impl<'a> Evaluator<'a> {
                         };
                         Ok(Value::List(parts))
                     }
+                    (Value::String(s), "lower") => Ok(Value::String(s.to_lowercase())),
+                    (Value::String(s), "upper") => Ok(Value::String(s.to_uppercase())),
                     _ => Err(format!("Unsupported method call: {} on {:?}", method_name, obj)),
                 }
             }
@@ -383,6 +411,35 @@ mod tests {
     fn test_resolve_math() {
         let vars = HashMap::new();
         assert_eq!(resolve_expression("${42 ** 10}", &vars).unwrap(), "17080198121677824");
+    }
+
+    #[test]
+    fn test_resolve_math_coercion() {
+        let mut vars = HashMap::new();
+        vars.insert("a".to_string(), "2".to_string());
+        vars.insert("b".to_string(), "3".to_string());
+        vars.insert("c".to_string(), "4".to_string());
+        assert_eq!(resolve_expression("${(a + b) * c}", &vars).unwrap(), "20");
+    }
+
+    #[test]
+    fn test_resolve_precedence() {
+        let vars = HashMap::new();
+        assert_eq!(resolve_expression("${1 + 2 * 3}", &vars).unwrap(), "7");
+        assert_eq!(resolve_expression("${(1 + 2) * 3}", &vars).unwrap(), "9");
+    }
+
+    #[test]
+    fn test_resolve_scientific() {
+        let vars = HashMap::new();
+        assert_eq!(resolve_expression("${42 * 1e3 + 7}", &vars).unwrap(), "42007.0");
+    }
+
+    #[test]
+    fn test_resolve_chained_methods() {
+        let mut vars = HashMap::new();
+        vars.insert("myString".to_string(), "Hello_World".to_string());
+        assert_eq!(resolve_expression("${myString.split('_')[0].lower()}", &vars).unwrap(), "hello");
     }
 
     #[test]

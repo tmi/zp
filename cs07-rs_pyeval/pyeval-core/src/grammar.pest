@@ -1,11 +1,13 @@
-WHITESPACE = _{ " " | "\t" | "\r" | "\n" }
-
 expression = { SOI ~ binary_expr ~ EOI }
 
-binary_expr = { unary_expr ~ (bin_op ~ unary_expr)* }
-bin_op = { "**" | "//" | "+" | "-" | "*" | "/" | "%" }
+binary_expr = { term ~ (add_op ~ term)* }
+term = { factor ~ (mul_op ~ factor)* }
+factor = { unary ~ (pow_op ~ unary)* }
+unary = { postfix_expr }
 
-unary_expr = { postfix_expr }
+add_op = { "+" | "-" }
+mul_op = { "*" | "/" | "//" | "%" }
+pow_op = { "**" }
 
 postfix_expr = { primary_expr ~ (subscript | method_call)* }
 subscript = { "[" ~ binary_expr ~ "]" }
@@ -22,7 +24,8 @@ kwarg = { name ~ "=" ~ binary_expr }
 posarg = { binary_expr }
 
 number = @{ signed_float | signed_int }
-signed_float = { ("+" | "-")? ~ ASCII_DIGIT+ ~ "." ~ ASCII_DIGIT* ~ (("e" | "E") ~ ("+" | "-")? ~ ASCII_DIGIT+)? }
+signed_float = { ("+" | "-")? ~ ASCII_DIGIT+ ~ ("." ~ ASCII_DIGIT* ~ exponent? | exponent) }
+exponent = { ("e" | "E") ~ ("+" | "-")? ~ ASCII_DIGIT+ }
 signed_int = { ("+" | "-")? ~ ASCII_DIGIT+ }
 
 string = { escaped_string | single_quoted }
@@ -30,3 +33,5 @@ escaped_string = @{ "\"" ~ ( !("\"" | "\\") ~ ANY | "\\" ~ ANY )* ~ "\"" }
 single_quoted = @{ "'" ~ ( !("'" | "\\") ~ ANY | "\\" ~ ANY )* ~ "'" }
 
 name = @{ (ASCII_ALPHA | "_") ~ (ASCII_ALPHANUMERIC | "_")* }
+
+WHITESPACE = _{ " " | "\t" | "\r" | "\n" }
