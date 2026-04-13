@@ -1,0 +1,18 @@
+[workspace]
+members = [
+    ".",
+    "pyeval-core",
+]
+
+[package]
+name = "rs_pyeval"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+name = "_rs_pyeval"
+crate-type = ["cdylib"]
+
+[dependencies]
+pyeval-core = { path = "pyeval-core" }
+pyo3 = { version = "0.23", features = ["extension-module"] }

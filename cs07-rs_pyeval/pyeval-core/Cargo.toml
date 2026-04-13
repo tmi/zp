@@ -1,0 +1,11 @@
+[package]
+name = "pyeval-core"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+pest = "2.7"
+pest_derive = "2.7"
+chrono = "0.4"
+regex = "1.10"
+lazy_static = "1.4"

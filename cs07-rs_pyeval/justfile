@@ -1,0 +1,6 @@
+val:
+    cd pyeval-core && cargo test
+    cargo check
+    maturin develop
+    uv run pytest
+    uv run ruff check .
