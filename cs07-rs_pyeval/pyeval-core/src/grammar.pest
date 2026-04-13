@@ -1,0 +1,37 @@
+expression = { SOI ~ binary_expr ~ EOI }
+
+binary_expr = { term ~ (add_op ~ term)* }
+term = { factor ~ (mul_op ~ factor)* }
+factor = { unary ~ (pow_op ~ unary)* }
+unary = { postfix_expr }
+
+add_op = { "+" | "-" }
+mul_op = { "*" | "/" | "//" | "%" }
+pow_op = { "**" }
+
+postfix_expr = { primary_expr ~ (subscript | method_call)* }
+subscript = { "[" ~ binary_expr ~ "]" }
+method_call = { "." ~ name ~ "(" ~ arglist? ~ ")" }
+
+primary_expr = { paren | func_call | var_ref | number | string }
+paren = { "(" ~ binary_expr ~ ")" }
+func_call = { name ~ "(" ~ arglist? ~ ")" }
+var_ref = { name }
+
+arglist = { arg ~ ("," ~ arg)* }
+arg = { kwarg | posarg }
+kwarg = { name ~ "=" ~ binary_expr }
+posarg = { binary_expr }
+
+number = @{ signed_float | signed_int }
+signed_float = { ("+" | "-")? ~ ASCII_DIGIT+ ~ ("." ~ ASCII_DIGIT* ~ exponent? | exponent) }
+exponent = { ("e" | "E") ~ ("+" | "-")? ~ ASCII_DIGIT+ }
+signed_int = { ("+" | "-")? ~ ASCII_DIGIT+ }
+
+string = { escaped_string | single_quoted }
+escaped_string = @{ "\"" ~ ( !("\"" | "\\") ~ ANY | "\\" ~ ANY )* ~ "\"" }
+single_quoted = @{ "'" ~ ( !("'" | "\\") ~ ANY | "\\" ~ ANY )* ~ "'" }
+
+name = @{ (ASCII_ALPHA | "_") ~ (ASCII_ALPHANUMERIC | "_")* }
+
+WHITESPACE = _{ " " | "\t" | "\r" | "\n" }

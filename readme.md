@@ -23,3 +23,7 @@
 ## CS06 Coding Agent Project
 * Status: Incubating
 * Summary: This project implements a basic autonomous coding agent in Rust, featuring a terminal user interface (TUI) and integration with Ollama for local LLM support. It serves as a foundation for exploring agentic workflows and tool-calling capabilities within a memory-efficient and performant Rust environment.
+
+## CS07 Rust Expression Evaluator
+* Status: Incubating
+* Summary: The `cs07-rs_pyeval` project provides a high-performance expression evaluation library implemented in Rust with seamless Python integration. It is designed to handle string interpolation with embedded logic, particularly useful for dynamic configuration and data processing pipelines that involve datetime manipulation and string operations.
