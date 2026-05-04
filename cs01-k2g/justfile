@@ -1,0 +1,14 @@
+val:
+    cd py_agg_client && uv run ruff check . && uv run ty check && uv run pytest
+    cd py_agg_visualizer && uv run ruff check . && uv run ty check && uv run pytest
+    cd python && uv run ruff check . && uv run ty check && uv run pytest
+    cd rs_agg_service && cargo check && cargo test
+    cd rs_membuf_service && cargo check && cargo test
+
+clean:
+    cd rs_agg_service && cargo clean
+    cd rs_membuf_service && cargo clean
+    find . -type d -name "__pycache__" -exec rm -rf {} +
+    find . -type d -name ".pytest_cache" -exec rm -rf {} +
+    find . -type d -name ".ruff_cache" -exec rm -rf {} +
+    find . -type d -name ".mypy_cache" -exec rm -rf {} +

@@ -5,3 +5,9 @@ val: proto
     uv run ruff check .
     uv run ty check
     uv run pytest
+
+clean:
+    rm -f src/pyser/schema_pb2.py
+    find . -type d -name "__pycache__" -exec rm -rf {} +
+    find . -type d -name ".pytest_cache" -exec rm -rf {} +
+    find . -type d -name ".ruff_cache" -exec rm -rf {} +
