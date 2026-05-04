@@ -9,7 +9,7 @@
 * Each project contains a readme.md (which is intended as instructions for contributors, including you)  and a summary.md (the results and takeaway, intended for downstream users). When you edit a project, consider updating both. Readme can be detailed but not overly verbose, Summary only very brief.
   * Summary starts with a line `*Status*: Completed/Incubating` -- when creating a new summary, always put there Incubating, otherwise don't change that line.
 * Each project contains `spec/` directory which is a history of individual change requests -- never modify these, only read them to understand project history if needed.
-* Each project contains a justfile (for https://github.com/casey/just) with at least `val` recipe, which runs linting and type checking and tests.
+* Each project contains a justfile (for https://github.com/casey/just) with at least `val` and `clean` recipes. The `val` recipe runs linting, type checking, and tests, while the `clean` recipe removes build artifacts and caches.
 * In the root of the repository there is a `readme.md`, which contains one paragraph-sized section for each project. Update this when creating a new project or substantially changing an existing one.
 
 # Python

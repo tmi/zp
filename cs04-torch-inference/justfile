@@ -41,3 +41,13 @@ build_executorch_cpp:
 build_executorch_rust:
 	cd executorch_bench/rust && cargo build --release
     # issue: could not find native static library `executorch`, perhaps an -L flag is missing?
+
+clean:
+	cd onnx_bench/rust && cargo clean
+	cd executorch_bench/rust && cargo clean
+	rm -rf onnx_bench/cpp/build
+	rm -rf executorch_bench/cpp/build
+	rm -f onnx_bench/golang/onnx_bench_go
+	find . -type d -name "__pycache__" -exec rm -rf {} +
+	find . -type d -name ".pytest_cache" -exec rm -rf {} +
+	find . -type d -name ".ruff_cache" -exec rm -rf {} +

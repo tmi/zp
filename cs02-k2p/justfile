@@ -1,0 +1,5 @@
+val:
+    cd pg_perf_tool && cargo check && cargo test
+
+clean:
+    cd pg_perf_tool && cargo clean
