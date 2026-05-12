@@ -9,9 +9,9 @@ use tokio_util::io::StreamReader;
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]
 struct Args {
-    /// URL of the server (e.g., http://localhost:11434 or http://localhost:8000)
+    /// URL of the server (defaults to http://localhost:11434 for Ollama, http://localhost:8000 for vLLM)
     #[arg(short, long)]
-    url: String,
+    url: Option<String>,
 
     /// Model name to use
     #[arg(short, long)]
@@ -25,7 +25,7 @@ struct Args {
     #[arg(long, value_enum)]
     provider: Provider,
 
-    /// Extra parameters as JSON string
+    /// Extra parameters as JSON string (e.g., '{"options": {"thinking": true}}' for Ollama)
     #[arg(short, long)]
     extra_params: Option<String>,
 }
@@ -87,19 +87,24 @@ async fn main() -> Result<()> {
         None
     };
 
-    println!("Benchmarking {} on {} provider at {}...", args.model, format!("{:?}", args.provider).to_lowercase(), args.url);
+    let url = args.url.clone().unwrap_or_else(|| match args.provider {
+        Provider::Ollama => "http://localhost:11434".to_string(),
+        Provider::Vllm => "http://localhost:8000".to_string(),
+    });
+
+    println!("Benchmarking {} on {} provider at {}...", args.model, format!("{:?}", args.provider).to_lowercase(), url);
 
     match args.provider {
-        Provider::Ollama => benchmark_ollama(&args, extra_params).await?,
-        Provider::Vllm => benchmark_vllm(&args, extra_params).await?,
+        Provider::Ollama => benchmark_ollama(&args, &url, extra_params).await?,
+        Provider::Vllm => benchmark_vllm(&args, &url, extra_params).await?,
     }
 
     Ok(())
 }
 
-async fn benchmark_ollama(args: &Args, extra: Option<serde_json::Value>) -> Result<()> {
+async fn benchmark_ollama(args: &Args, url: &str, extra: Option<serde_json::Value>) -> Result<()> {
     let client = reqwest::Client::new();
-    let endpoint = format!("{}/api/generate", args.url.trim_end_matches('/'));
+    let endpoint = format!("{}/api/generate", url.trim_end_matches('/'));
 
     let request_body = OllamaRequest {
         model: &args.model,
@@ -161,9 +166,9 @@ async fn benchmark_ollama(args: &Args, extra: Option<serde_json::Value>) -> Resu
     Ok(())
 }
 
-async fn benchmark_vllm(args: &Args, extra: Option<serde_json::Value>) -> Result<()> {
+async fn benchmark_vllm(args: &Args, url: &str, extra: Option<serde_json::Value>) -> Result<()> {
     let client = reqwest::Client::new();
-    let endpoint = format!("{}/v1/completions", args.url.trim_end_matches('/'));
+    let endpoint = format!("{}/v1/completions", url.trim_end_matches('/'));
 
     let request_body = VllmRequest {
         model: &args.model,
