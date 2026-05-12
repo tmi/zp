@@ -27,3 +27,7 @@
 ## CS07 Rust Expression Evaluator
 * Status: Incubating
 * Summary: The `cs07-rs_pyeval` project provides a high-performance expression evaluation library implemented in Rust with seamless Python integration. It is designed to handle string interpolation with embedded logic, particularly useful for dynamic configuration and data processing pipelines that involve datetime manipulation and string operations.
+
+## CS08 LLM Serving Benchmark
+* Status: Incubating
+* Summary: This project implements a CLI tool in Rust designed to benchmark LLM serving platforms, specifically Ollama and vLLM. It measures key performance indicators such as Time to First Token (TTFT) and Tokens Per Second (TPS) using streaming responses, providing developers with metrics to evaluate and optimize LLM inference performance.
