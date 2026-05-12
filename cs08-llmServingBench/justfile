@@ -1,0 +1,6 @@
+val:
+    cargo check
+    cargo test
+
+clean:
+    cargo clean
