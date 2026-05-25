@@ -1,0 +1,9 @@
+# Level 1: Find the treasure
+# Treasure: 1
+# Traps: 0
+XXXXXXXXXXXXX
+X P         X
+X           X
+X      T    X
+X           X
+XXXXXXXXXXXXX

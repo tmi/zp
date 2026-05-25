@@ -31,3 +31,7 @@
 ## CS08 LLM Serving Benchmark
 * Status: Incubating
 * Summary: This project implements a CLI tool in Rust designed to benchmark LLM serving platforms, specifically Ollama and vLLM. It measures key performance indicators such as Time to First Token (TTFT) and Tokens Per Second (TPS) using streaming responses, providing developers with metrics to evaluate and optimize LLM inference performance.
+
+## CS09 Simple Dungeon Game
+* Status: Incubating
+* Summary: This project implements a retro-style dungeon crawling game using Python and `curses`. It provides a clean, extensible framework for level-based gameplay with treasure collection and trap mechanics. The design prioritizes ease of content creation through ASCII-based level files and centralized asset management.
