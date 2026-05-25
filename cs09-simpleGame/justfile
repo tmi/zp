@@ -1,0 +1,13 @@
+val:
+    uv run ruff check .
+    uv run ty check src
+    uv run pytest
+
+clean:
+    rm -rf .venv
+    find . -type d -name "__pycache__" -exec rm -rf {} +
+    rm -rf .pytest_cache
+    rm -rf .ruff_cache
+
+play:
+    uv run python ./main.py

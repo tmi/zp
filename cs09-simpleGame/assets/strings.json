@@ -1,0 +1,10 @@
+{
+  "intro_new_game": "N - New Game",
+  "intro_quit": "Q - Quit",
+  "level_select_title": "Choose a Level:",
+  "victory_congrats": "Congratulations!",
+  "victory_next": "N - Next Level",
+  "victory_restart": "R - Restart Level",
+  "victory_quit": "Q - Quit Game",
+  "game_controls": "Arrows: Move | R: Restart | Q: Quit | N: Menu"
+}
