@@ -1,0 +1,11 @@
+# Level 2: Three treasures
+# Treasure: 3
+# Traps: 0
+XXXXXXXXXXXXX
+X P   X     X
+X     X     X
+X   T X  T  X
+X     X     X
+X  XXXX     X
+X  T        X
+XXXXXXXXXXXXX
