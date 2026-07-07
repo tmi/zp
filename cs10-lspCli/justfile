@@ -1,0 +1,10 @@
+val:
+    cargo fmt --all -- --check
+    cargo clippy --all-targets --all-features -- -D warnings
+    cargo test
+
+clean:
+    cargo clean
+
+install:
+    cargo install --path .

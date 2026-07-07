@@ -35,3 +35,7 @@
 ## CS09 Simple Dungeon Game
 * Status: Incubating
 * Summary: This project implements a retro-style dungeon crawling game using Python and `curses`. It provides a clean, extensible framework for level-based gameplay with treasure collection and trap mechanics. The design prioritizes ease of content creation through ASCII-based level files and centralized asset management.
+
+## CS10 LSP CLI
+* Status: Incubating
+* Summary: This project provides a Rust-based command-line interface for interacting with Language Server Protocol (LSP) servers. It supports spawning servers, checking status, and performing code navigation tasks like finding definitions and callers. The tool uses named pipes for asynchronous communication and includes fallbacks for servers with limited capability support.
