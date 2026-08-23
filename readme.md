@@ -39,3 +39,7 @@
 ## CS10 LSP CLI
 * Status: Incubating
 * Summary: This project provides a Rust-based command-line interface for interacting with Language Server Protocol (LSP) servers. It supports spawning servers, checking status, and performing code navigation tasks like finding definitions and callers. The tool uses named pipes for asynchronous communication and includes fallbacks for servers with limited capability support.
+
+## CS11 Concurrency Buffers and Queues
+* Status: Incubating
+* Summary: This subproject implements a Java concurrency micro-benchmark evaluating message-passing performance across producer, transformer, and consumer pipelines using strategies such as lock-free slot arrays, Vyukov MPMC ring buffers, and JDK standard queue variants (`ArrayBlockingQueue`, `LinkedBlockingQueue`, `ConcurrentLinkedQueue`).

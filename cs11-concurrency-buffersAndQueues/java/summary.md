@@ -1,0 +1,1 @@
+This subproject implements a Java concurrency micro-benchmark evaluating message-passing performance across producer, transformer, and consumer pipelines using strategies such as lock-free slot arrays, Vyukov MPMC ring buffers, and JDK standard queue variants (`ArrayBlockingQueue`, `LinkedBlockingQueue`, `ConcurrentLinkedQueue`).
