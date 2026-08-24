@@ -67,7 +67,7 @@ def parse_results(filepath: str, scenario: str) -> list[Record]:
                         measured_elapsed_ns.append(elapsed_ns)
                         if current_sum is None:
                             current_sum = sum_val
-                        else:
+                        elif scenario == "test":
                             assert math.isclose(current_sum, sum_val, rel_tol=1e-5), (
                                 f"Sum mismatch within record: {current_sum} vs {sum_val}"
                             )

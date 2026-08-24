@@ -27,9 +27,13 @@ SPMT_N=2000000; SPMT_P=1; SPMT_T_SWEEP=(2 4)
 MPMT_N=8000000; MPMT_P=4; MPMT_T=20
 
 # ---- methods supported per language (edit if a port adds/drops a variant) ----
+# shellcheck disable=SC2034
 IMPLS_java=(B A R Qbl Qul Quf)
+# shellcheck disable=SC2034
 IMPLS_rust=(B A R Qbl Qbf Qul Quf)
+# shellcheck disable=SC2034
 IMPLS_c=(B A R)
+# shellcheck disable=SC2034
 IMPLS_python_nogil=(B A R Qbl Qul)
 
 # ---- usage / validation ----
@@ -72,6 +76,8 @@ fi
 
 # Determine impl array for chosen language
 key="IMPLS_${lang//-/_}"
+impls=()
+# shellcheck disable=SC2154
 eval "impls=(\"\${${key}[@]}\")"
 
 RESULTS_DIR="$SCRIPT_DIR/results"
@@ -97,11 +103,11 @@ case "$scenario" in
     ;;
 
   spst)
-    run_cfg "B" "allocate" "$SPST_N" "$SPST_K" "$SPST_I" "1" "1" "$SUITE"
+    run_cfg "B" "allocate" "$SPST_N" "$SPST_K" "$SPST_I" "$SPST_P" "$SPST_T" "$SUITE"
     for m in "${impls[@]}"; do
       if [ "$m" = "B" ]; then continue; fi
       for alloc in "${ALLOC_SWEEP[@]}"; do
-        run_cfg "$m" "$alloc" "$SPST_N" "$SPST_K" "$SPST_I" "1" "1" "$SUITE"
+        run_cfg "$m" "$alloc" "$SPST_N" "$SPST_K" "$SPST_I" "$SPST_P" "$SPST_T" "$SUITE"
       done
     done
     ;;
@@ -109,12 +115,12 @@ case "$scenario" in
   spmt)
     for k in "${K_SWEEP[@]}"; do
       for i in "${I_SWEEP[@]}"; do
-        run_cfg "B" "allocate" "$SPMT_N" "$k" "$i" "1" "1" "$SUITE"
+        run_cfg "B" "allocate" "$SPMT_N" "$k" "$i" "$SPMT_P" "1" "$SUITE"
         for t in "${SPMT_T_SWEEP[@]}"; do
           for m in "${impls[@]}"; do
             if [ "$m" = "B" ]; then continue; fi
             for alloc in "${ALLOC_SWEEP[@]}"; do
-              run_cfg "$m" "$alloc" "$SPMT_N" "$k" "$i" "1" "$t" "$SUITE"
+              run_cfg "$m" "$alloc" "$SPMT_N" "$k" "$i" "$SPMT_P" "$t" "$SUITE"
             done
           done
         done
