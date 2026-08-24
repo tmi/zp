@@ -1,13 +1,14 @@
 val:
 	#!/usr/bin/env bash
 	set -euo pipefail
-	javac -d build src/Bench.java
-	for m in B A R Qbl Qul Quf; do \
+	cargo check --quiet
+	cargo test --quiet
+	for m in B A R Qbl Qul Qbf Quf; do \
 		for alloc in allocate pool; do \
 			N=1000 K=64 I=4 P=2 T=4 M=$m ALLOC=$alloc RING=1024 S=test ./run.sh > /dev/null; \
 		done; \
 	done
-	echo "Validation passed!"
+	echo "Rust validation passed!"
 
 clean:
-	rm -rf build
+	cargo clean

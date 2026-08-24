@@ -1,0 +1,11 @@
+val:
+	@echo "Validating Java..."
+	just -f java/justfile -d java val
+	@echo "Validating Rust..."
+	just -f rust/justfile -d rust val
+
+clean:
+	@echo "Cleaning Java..."
+	just -f java/justfile -d java clean
+	@echo "Cleaning Rust..."
+	just -f rust/justfile -d rust clean

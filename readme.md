@@ -42,4 +42,4 @@
 
 ## CS11 Concurrency Buffers and Queues
 * Status: Incubating
-* Summary: This subproject implements a Java concurrency micro-benchmark evaluating message-passing performance across producer, transformer, and consumer pipelines using strategies such as lock-free slot arrays, Vyukov MPMC ring buffers, and JDK standard queue variants (`ArrayBlockingQueue`, `LinkedBlockingQueue`, `ConcurrentLinkedQueue`).
+* Summary: This subproject implements Java and Rust concurrency micro-benchmarks evaluating message-passing performance across producer, transformer, and consumer pipelines using strategies such as lock-free slot arrays, Vyukov MPMC ring buffers, locking queues, and lock-free queues (`crossbeam-channel` in Rust).
