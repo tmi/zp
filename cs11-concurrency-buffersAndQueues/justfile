@@ -3,9 +3,13 @@ val:
 	just -f java/justfile -d java val
 	@echo "Validating Rust..."
 	just -f rust/justfile -d rust val
+	@echo "Validating Suite..."
+	just -f suite/justfile -d suite val
 
 clean:
 	@echo "Cleaning Java..."
 	just -f java/justfile -d java clean
 	@echo "Cleaning Rust..."
 	just -f rust/justfile -d rust clean
+	@echo "Cleaning Suite..."
+	just -f suite/justfile -d suite clean

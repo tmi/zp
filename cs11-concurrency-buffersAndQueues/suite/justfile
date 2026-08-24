@@ -1,0 +1,12 @@
+val:
+	uv run ruff check .
+	uv run ty check .
+	uv run pytest -q
+	@if command -v shellcheck >/dev/null 2>&1; then \
+		shellcheck suite.sh; \
+	elif command -v uvx >/dev/null 2>&1; then \
+		uvx --from shellcheck-py shellcheck suite.sh; \
+	fi
+
+clean:
+	rm -rf results .pytest_cache .ruff_cache __pycache__
