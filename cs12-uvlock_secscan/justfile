@@ -1,0 +1,7 @@
+val:
+    shellcheck uvlock_secscan.sh
+    bash -n uvlock_secscan.sh
+    bash uvlock_secscan.sh --help >/dev/null
+
+clean:
+    @echo "Nothing to clean"
