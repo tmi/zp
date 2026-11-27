@@ -43,3 +43,7 @@
 ## CS11 Concurrency Buffers and Queues
 * Status: Incubating
 * Summary: This subproject implements Java and Rust concurrency micro-benchmarks evaluating message-passing performance across producer, transformer, and consumer pipelines using strategies such as lock-free slot arrays, Vyukov MPMC ring buffers, locking queues, and lock-free queues (`crossbeam-channel` in Rust).
+
+## CS12 uv.lock security scan
+* Status: Incubating
+* Summary: A bash script that scans all `uv.lock` files in a git repo (or a single one), flagging packages that are too new (respecting `exclude-newer-span`) or that have known vulnerabilities according to the OSV API. On non-main branches it only checks packages changed relative to `main`/`master`.
